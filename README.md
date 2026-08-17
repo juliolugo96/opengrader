@@ -1,8 +1,9 @@
 # OpenGrader
 
 OpenGrader is an open-source, local-first autograding CLI. It discovers one
-submission per folder, runs an assignment's tests in isolated Docker containers,
-and writes both JSON results and a Markdown summary.
+submission per folder, runs assignment tests in isolated Docker containers, and
+writes JSON, Markdown, and CSV reports. MVP 2 adds partial credit, deterministic
+parallel grading, selection patterns, and retries.
 
 ## Requirements
 
@@ -33,9 +34,24 @@ Or use the default Docker sandbox:
 opengrader run examples/assignment.yaml examples/submissions
 ```
 
-Reports are written to `opengrader-results/results.json` and
-`opengrader-results/summary.md`. Choose another location with
-`--output-dir PATH`.
+Reports are written to `opengrader-results/results.json`,
+`opengrader-results/summary.md`, and `opengrader-results/results.csv`. Choose
+another location with `--output-dir PATH`.
+
+Batch options can be combined:
+
+```sh
+opengrader run assignment.yaml submissions/ \
+  --workers 4 \
+  --submission 'section-a-*' \
+  --submission 'late-*' \
+  --retries 1
+```
+
+`--submission/-s` accepts case-sensitive shell patterns and may be repeated.
+Every pattern must match at least one folder. `--workers/-j` runs submissions in
+parallel while keeping report order stable. `--retries` grants additional fresh
+attempts and retains the highest-scoring attempt.
 
 > [!WARNING]
 > `--no-docker` executes submission commands on the host. A temporary copy keeps
@@ -60,11 +76,15 @@ tests:
     command: python -m unittest -q
     points: 3
     timeout_seconds: 20 # optional per-test override
+    partial_credit:      # optional exit-code-to-credit-fraction mapping
+      2: 0.75
+      3: 0.50
 ```
 
-A test passes when its shell command exits with status `0`. It receives all its
-configured points; any other exit status or a timeout receives zero. Test names
-must be unique. Unknown YAML keys are rejected to catch mistakes early.
+A test receives full credit when its shell command exits with status `0`.
+Configured nonzero exit codes can receive a fractional score; unmapped failures
+and timeouts receive zero. Test names must be unique. Unknown YAML keys are
+rejected to catch mistakes early.
 
 Every visible direct child directory of the submissions path is treated as one
 submission, and its folder name becomes its student ID:
@@ -81,8 +101,12 @@ submissions/
 
 ```sh
 pytest
+pytest -m unit
+pytest -m integration
+pytest -m e2e
+mutmut run
 ```
 
-See [Architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and the
+See [MVP 2 design](docs/MVP2_DESIGN.md), the [TDAID record](docs/TDAID_MVP2.md),
+[architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and the
 [roadmap](docs/ROADMAP.md) for scope and design details.
-

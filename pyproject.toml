@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengrader"
-version = "0.1.0"
+version = "0.2.0"
 description = "A local-first, CLI autograder"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -18,7 +18,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10"]
+dev = [
+  "mutmut>=3.6,<4",
+  "pytest>=8,<10",
+  "pytest-bdd>=8.1,<9",
+]
 
 [project.scripts]
 opengrader = "opengrader.cli:app"
@@ -30,4 +34,23 @@ where = ["src"]
 addopts = "-q"
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+  "unit: isolated domain tests",
+  "integration: tests spanning multiple OpenGrader components",
+  "e2e: command-line tests exercising a user workflow",
+]
 
+[tool.mutmut]
+source_paths = ["src/opengrader/grader.py"]
+pytest_add_cli_args_test_selection = ["tests/"]
+also_copy = [
+  "pyproject.toml",
+  "src/opengrader/__init__.py",
+  "src/opengrader/cli.py",
+  "src/opengrader/config.py",
+  "src/opengrader/errors.py",
+  "src/opengrader/results.py",
+  "src/opengrader/runners.py",
+  "src/opengrader/submissions.py",
+]
+on_dependency_change = "rerun"

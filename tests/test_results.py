@@ -42,7 +42,7 @@ def test_result_scores_and_writes_both_formats(tmp_path: Path) -> None:
         ],
     )
 
-    json_path, markdown_path = write_results(result, tmp_path / "reports")
+    json_path, markdown_path, csv_path = write_results(result, tmp_path / "reports")
 
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert payload["submissions"][0]["score"] == 2
@@ -51,3 +51,4 @@ def test_result_scores_and_writes_both_formats(tmp_path: Path) -> None:
     assert "student\\|one" in markdown
     assert "2/5" in markdown
     assert "Fail" in markdown
+    assert csv_path.exists()

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from fnmatch import fnmatchcase
 from pathlib import Path
 
 from opengrader.errors import SubmissionError
@@ -35,3 +36,21 @@ def discover_submissions(root: Path) -> list[Submission]:
         raise SubmissionError(f"No submission folders found in '{root}'")
     return submissions
 
+
+def select_submissions(
+    submissions: list[Submission], patterns: list[str]
+) -> list[Submission]:
+    """Select a stable union of student IDs matching shell-style patterns."""
+
+    if not patterns:
+        return list(submissions)
+
+    for pattern in patterns:
+        if not any(fnmatchcase(item.student_id, pattern) for item in submissions):
+            raise SubmissionError(f"Submission pattern '{pattern}' matched no submissions")
+
+    return [
+        item
+        for item in submissions
+        if any(fnmatchcase(item.student_id, pattern) for pattern in patterns)
+    ]

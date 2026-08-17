@@ -3,13 +3,6 @@
 These prompts are deliberately scoped so each phase can be implemented and
 reviewed independently.
 
-## MVP 2 — Batch grading
-
-Extend OpenGrader with partial-credit rubric items, configurable parallel
-workers, per-submission filtering, retry support, and aggregate CSV export.
-Preserve the current YAML format and result compatibility where practical. Add
-tests for rounding, worker failures, and deterministic result ordering.
-
 ## MVP 3 — API
 
 Add a FastAPI service that creates grading jobs, exposes job status, and returns
@@ -39,4 +32,3 @@ clear separation between billing state and grading records.
 Add a Canvas adapter for importing rosters and assignments and exporting grades.
 Use least-privilege credentials, dry-run grade writes, idempotency keys, and a
 generic adapter interface for future LMS providers.
-

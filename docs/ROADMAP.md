@@ -1,6 +1,6 @@
 # Roadmap
 
-## MVP 1 — CLI autograding (current)
+## MVP 1 — CLI autograding (complete)
 
 - Validated YAML assignments
 - Folder discovery
@@ -8,12 +8,15 @@
 - Pass/fail scoring
 - JSON and Markdown reports
 
-## MVP 2 — Batch grading
+## MVP 2 — Batch grading (current)
 
-- Partial-credit assertions and richer rubrics
-- Parallel workers and progress reporting
-- Submission-level filters and retries
-- Plagiarism-export hooks
+- Exit-code-based partial-credit rubrics
+- Deterministic parallel workers
+- Submission-level glob filters and bounded retries
+- JSON, Markdown, and aggregate CSV export
+
+Deferred from MVP 2: progress callbacks, resumable jobs, and plagiarism-export
+hooks. These fit the persistent job model planned for MVP 3.
 
 ## MVP 3 — API
 
@@ -38,4 +41,3 @@
 
 - Canvas assignment and grade synchronization
 - Additional LMS adapters behind a common interface
-

@@ -5,5 +5,8 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+build/
+dist/
 opengrader-results/
-
+mutants/
+.mutmut-cache

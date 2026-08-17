@@ -11,7 +11,7 @@ from opengrader.errors import ConfigError
 
 
 class TestConfig(BaseModel):
-    """One pass/fail command in an assignment rubric."""
+    """One command and its scoring policy in an assignment rubric."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -19,6 +19,7 @@ class TestConfig(BaseModel):
     command: str = Field(min_length=1)
     points: float = Field(default=1.0, gt=0)
     timeout_seconds: float | None = Field(default=None, gt=0, le=3600)
+    partial_credit: dict[int, float] = Field(default_factory=dict)
 
     @field_validator("name", "command")
     @classmethod
@@ -27,6 +28,16 @@ class TestConfig(BaseModel):
         if not value:
             raise ValueError("must not be blank")
         return value
+
+    @field_validator("partial_credit")
+    @classmethod
+    def valid_partial_credit(cls, mapping: dict[int, float]) -> dict[int, float]:
+        for exit_code, fraction in mapping.items():
+            if not 1 <= exit_code <= 255:
+                raise ValueError("partial credit exit codes must be between 1 and 255")
+            if not 0 <= fraction <= 1:
+                raise ValueError("partial credit fractions must be between 0 and 1")
+        return mapping
 
 
 class AssignmentConfig(BaseModel):
@@ -98,4 +109,3 @@ def load_assignment(path: Path) -> AssignmentConfig:
             for error in exc.errors()
         )
         raise ConfigError(f"Invalid assignment configuration: {details}") from exc
-
