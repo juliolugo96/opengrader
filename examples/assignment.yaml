@@ -1,0 +1,17 @@
+name: Addition exercise
+image: python:3.12-slim
+timeout_seconds: 5
+memory_mb: 128
+cpus: 1
+pids_limit: 64
+tests:
+  - name: Program runs
+    command: python solution.py
+    points: 1
+  - name: Adds two positive numbers
+    command: test "$(python solution.py 2 3)" = "5"
+    points: 2
+  - name: Adds a negative number
+    command: test "$(python solution.py -4 7)" = "3"
+    points: 2
+
