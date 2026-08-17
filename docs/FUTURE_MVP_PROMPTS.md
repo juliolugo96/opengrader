@@ -3,12 +3,6 @@
 These prompts are deliberately scoped so each phase can be implemented and
 reviewed independently.
 
-## MVP 3 — API
-
-Add a FastAPI service that creates grading jobs, exposes job status, and returns
-existing result models. Run grading outside request handlers, persist state, add
-authentication and audit events, and document local deployment.
-
 ## MVP 4 — UI
 
 Build a React dashboard on the API for uploading assignments and submissions,

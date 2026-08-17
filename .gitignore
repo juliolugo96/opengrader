@@ -8,5 +8,6 @@ htmlcov/
 build/
 dist/
 opengrader-results/
+.opengrader/
 mutants/
 .mutmut-cache

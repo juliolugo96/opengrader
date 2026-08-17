@@ -25,6 +25,19 @@
 - [x] Mutation testing configuration and validation
 - [x] TDAID Plan, Red, Green, Refactor, and Validate record
 
+## MVP 3
+
+- [x] Strict FastAPI request and response contracts
+- [x] Authenticated job, result, listing, and audit routes
+- [x] Fail-closed API-key configuration with non-secret actor fingerprints
+- [x] Durable SQLite job state and restart recovery
+- [x] Background grading outside request handlers
+- [x] Per-job JSON, Markdown, and CSV reports
+- [x] Unit and multi-component integration tests
+- [x] Executable authenticated Gherkin workflow
+- [x] Mutation testing configuration and validation
+- [x] Local deployment, architecture, security, and TDAID documentation
+
 MVP completion means the example command succeeds and the test suite passes. It
 does not imply that Docker alone is sufficient for adversarial multi-tenant use;
 see [SECURITY.md](SECURITY.md).

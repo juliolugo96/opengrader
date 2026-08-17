@@ -28,6 +28,24 @@ copy protects the original submission folder from ordinary writes, but the code
 can still read, modify, or delete anything that user can access and can use the
 network. Only use local mode for trusted fixtures.
 
+## HTTP API
+
+All `/v1` routes require a bearer key from `OPENGRADER_API_KEYS`. OpenGrader
+fails closed with `503` when no keys are configured, compares supplied keys in
+constant time, and writes only a short SHA-256 fingerprint to audit records.
+Raw keys are neither persisted nor returned.
+
+API requests contain server-local paths, so authenticated callers can ask the
+service to read assignment and submission directories accessible to its OS
+account. Treat keys as privileged credentials, run OpenGrader under a dedicated
+least-privilege account, and keep its readable filesystem narrow. Bind to
+loopback by default. Any network deployment needs TLS and authentication at a
+trusted reverse proxy in addition to the application key.
+
+MVP 3 supports a single API process with one managed worker. Do not run multiple
+processes against the same database. As with the CLI, setting `no_docker: true`
+executes trusted submission code with the API process user's host permissions.
+
 ## Known MVP limitations
 
 - Assignment authors are trusted; their image and commands are executed as
@@ -36,7 +54,7 @@ network. Only use local mode for trusted fixtures.
 - Docker daemon authorization is outside OpenGrader.
 - Strong multi-tenant deployments need worker isolation, image policy, quotas,
   centralized audit logs, and additional sandboxing such as microVMs.
+- API keys have no built-in rotation, scope, expiration, or rate limiting.
 
 Report vulnerabilities privately to the project maintainers rather than opening
 a public issue containing exploit details.
-

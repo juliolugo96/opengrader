@@ -8,21 +8,22 @@
 - Pass/fail scoring
 - JSON and Markdown reports
 
-## MVP 2 — Batch grading (current)
+## MVP 2 — Batch grading (complete)
 
 - Exit-code-based partial-credit rubrics
 - Deterministic parallel workers
 - Submission-level glob filters and bounded retries
 - JSON, Markdown, and aggregate CSV export
 
-Deferred from MVP 2: progress callbacks, resumable jobs, and plagiarism-export
-hooks. These fit the persistent job model planned for MVP 3.
+Deferred from MVP 2: progress callbacks and plagiarism-export hooks.
 
-## MVP 3 — API
+## MVP 3 — API (current)
 
-- FastAPI service around the grading engine
-- Persistent jobs and result storage
-- Authentication and audit events
+- FastAPI service around the grading engine (complete)
+- Persistent SQLite jobs and result metadata (complete)
+- API-key authentication and audit events (complete)
+- In-process background grading and restart recovery (complete)
+- Local deployment and API operations documentation (complete)
 
 ## MVP 4 — UI
 

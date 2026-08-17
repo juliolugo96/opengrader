@@ -1,9 +1,9 @@
 # OpenGrader
 
-OpenGrader is an open-source, local-first autograding CLI. It discovers one
-submission per folder, runs assignment tests in isolated Docker containers, and
-writes JSON, Markdown, and CSV reports. MVP 2 adds partial credit, deterministic
-parallel grading, selection patterns, and retries.
+OpenGrader is an open-source, local-first autograder with CLI and authenticated
+HTTP interfaces. It discovers one submission per folder, runs assignment tests
+in isolated Docker containers, and writes JSON, Markdown, and CSV reports. MVP 3
+adds durable asynchronous jobs, result retrieval, and an audit trail.
 
 ## Requirements
 
@@ -58,6 +58,32 @@ attempts and retains the highest-scoring attempt.
 > source folders clean, but it is not a security boundary. Only use it with code
 > you trust.
 
+## HTTP API
+
+Configure at least one API key and start the single-process local service:
+
+```sh
+export OPENGRADER_API_KEYS='replace-with-a-long-random-key'
+opengrader-api
+```
+
+Submit a job that uses paths visible to the API host:
+
+```sh
+curl -X POST http://127.0.0.1:8000/v1/jobs \
+  -H 'Authorization: Bearer replace-with-a-long-random-key' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "assignment_file": "examples/assignment.yaml",
+    "submissions_dir": "examples/submissions"
+  }'
+```
+
+The request returns `202` immediately. Poll `/v1/jobs/{id}` and retrieve the
+completed result from `/v1/jobs/{id}/result`. See the [API operations guide](docs/API.md)
+for every endpoint and environment setting. API-side `no_docker: true` has the
+same trusted-code warning as `--no-docker`.
+
 ## Assignment format
 
 ```yaml
@@ -107,6 +133,6 @@ pytest -m e2e
 mutmut run
 ```
 
-See [MVP 2 design](docs/MVP2_DESIGN.md), the [TDAID record](docs/TDAID_MVP2.md),
-[architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and the
+See the [MVP 3 design](docs/MVP3_DESIGN.md), [TDAID record](docs/TDAID_MVP3.md),
+[architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and
 [roadmap](docs/ROADMAP.md) for scope and design details.
