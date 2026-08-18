@@ -21,6 +21,12 @@ def test_settings_load_paths_keys_and_poll_interval(monkeypatch, tmp_path: Path)
     monkeypatch.setenv("OPENGRADER_PDF_STORAGE_ROOT", str(tmp_path / "pdfs"))
     monkeypatch.setenv("OPENGRADER_PDF_MAX_UPLOAD_BYTES", "2048")
     monkeypatch.setenv("OPENGRADER_PDF_MAX_PAGES", "25")
+    monkeypatch.setenv("OPENGRADER_BILLING_ENABLED", "true")
+    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_settings")
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", "whsec_settings")
+    monkeypatch.setenv("OPENGRADER_STRIPE_PRICE_ID", "price_settings")
+    monkeypatch.setenv("OPENGRADER_PUBLIC_URL", "https://grader.example")
+    monkeypatch.setenv("OPENGRADER_STRIPE_METER_EVENT_NAME", "grader_units")
     monkeypatch.setenv("OPENGRADER_API_KEYS", " first, second ,,first ")
     monkeypatch.setenv("OPENGRADER_POLL_INTERVAL", "0.25")
 
@@ -31,16 +37,39 @@ def test_settings_load_paths_keys_and_poll_interval(monkeypatch, tmp_path: Path)
     assert settings.pdf_storage_root == tmp_path / "pdfs"
     assert settings.pdf_max_upload_bytes == 2048
     assert settings.pdf_max_pages == 25
+    assert settings.billing_enabled is True
+    assert settings.stripe_secret_key == "sk_test_settings"
+    assert settings.stripe_webhook_secret == "whsec_settings"
+    assert settings.stripe_price_id == "price_settings"
+    assert settings.public_url == "https://grader.example"
+    assert settings.stripe_meter_event_name == "grader_units"
     assert settings.api_keys == ("first", "second")
     assert settings.poll_interval == 0.25
+
+
+def test_hosted_billing_settings_fail_closed_when_stripe_configuration_is_incomplete() -> None:
+    with pytest.raises(ValueError, match="Hosted billing requires"):
+        ApiSettings(billing_enabled=True)
 
 
 def test_api_key_id_is_stable_and_does_not_reveal_key() -> None:
     identifier = api_key_id("super-secret")
 
     assert identifier == api_key_id("super-secret")
-    assert len(identifier) == 12
+    assert len(identifier) == 24
     assert "secret" not in identifier
+
+
+def test_settings_repr_does_not_reveal_stripe_secrets() -> None:
+    settings = ApiSettings(
+        billing_enabled=True,
+        stripe_secret_key="sk_test_never_log_me",
+        stripe_webhook_secret="whsec_never_log_me",
+        stripe_price_id="price_test",
+    )
+
+    assert "sk_test_never_log_me" not in repr(settings)
+    assert "whsec_never_log_me" not in repr(settings)
 
 
 def test_job_request_defaults_to_docker_and_single_attempt() -> None:

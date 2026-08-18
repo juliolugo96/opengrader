@@ -2,10 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
+  createBillingCheckout,
+  createBillingPortal,
   createJob,
   getPdfDocument,
   getPdfFeedback,
   getPdfSubmission,
+  getBillingOverview,
   listAllPdfSubmissions,
   listAllJobs,
   listJobs,
@@ -40,14 +43,24 @@ describe("API client", () => {
 
   it("keeps health public while authenticating the readiness probe", async () => {
     fetchMock
-      .mockResolvedValueOnce(new Response('{"status":"ok","version":"0.5.0","authentication_configured":true}', { status: 200, headers: { "Content-Type": "application/json" } }))
+      .mockResolvedValueOnce(new Response('{"status":"ok","version":"0.6.0","authentication_configured":true}', { status: 200, headers: { "Content-Type": "application/json" } }))
       .mockResolvedValueOnce(new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } }));
 
-    const health = await testConnection();
+    const health = await testConnection({
+      apiBaseUrl: "https://override.example",
+      apiKey: "override-key",
+      theme: "light"
+    });
 
-    expect(health.version).toBe("0.5.0");
+    expect(health.version).toBe("0.6.0");
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/opengrader/health",
+      "/api/opengrader/v1/jobs?limit=1"
+    ]);
     expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get("Authorization")).toBeNull();
-    expect(new Headers(fetchMock.mock.calls[1][1]?.headers).get("Authorization")).toBe("Bearer secret-key");
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get("X-OpenGrader-Base-URL")).toBe("https://override.example");
+    expect(new Headers(fetchMock.mock.calls[1][1]?.headers).get("Authorization")).toBe("Bearer override-key");
+    expect(new Headers(fetchMock.mock.calls[1][1]?.headers).get("X-OpenGrader-Base-URL")).toBe("https://override.example");
   });
 
   it("maps the dashboard job form to the current backend contract", async () => {
@@ -74,6 +87,29 @@ describe("API client", () => {
       submission_filter: "section-a-*",
       no_docker: false
     });
+  });
+
+  it("loads billing state and creates server-owned checkout and portal sessions", async () => {
+    fetchMock
+      .mockResolvedValueOnce(new Response('{"mode":"hosted","status":"none"}', { status: 200, headers: { "Content-Type": "application/json" } }))
+      .mockResolvedValueOnce(new Response('{"url":"https://checkout.stripe.test/session"}', { status: 200, headers: { "Content-Type": "application/json" } }))
+      .mockResolvedValueOnce(new Response('{"url":"https://billing.stripe.test/portal"}', { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    await getBillingOverview();
+    await createBillingCheckout(" teacher@example.com ");
+    await createBillingPortal();
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/opengrader/v1/billing/overview",
+      "/api/opengrader/v1/billing/checkout",
+      "/api/opengrader/v1/billing/portal"
+    ]);
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual({
+      email: "teacher@example.com"
+    });
+    expect(fetchMock.mock.calls[1][1]?.method).toBe("POST");
+    expect(new Headers(fetchMock.mock.calls[1][1]?.headers).get("Content-Type")).toBe("application/json");
+    expect(fetchMock.mock.calls[2][1]?.method).toBe("POST");
   });
 
   it("loads every jobs page so dashboard totals are complete", async () => {

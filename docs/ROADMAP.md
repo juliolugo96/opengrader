@@ -37,9 +37,12 @@ Deferred from MVP 2: progress callbacks and plagiarism-export hooks.
 - Normalized page annotations and feedback-preserving PDF export
 - Instructor dashboard and authenticated document preview
 
-## MVP 6 — Billing
+## MVP 6 — Billing (complete)
 
-- Stripe subscriptions and usage metering for hosted deployments
+- Optional hosted subscription enforcement with free local grading
+- Stripe Checkout, Customer Portal, and signed lifecycle webhooks
+- Idempotent, ordered subscription projections
+- Durable grading-unit metering with retry-safe Stripe delivery
 
 ## MVP 7 — LMS integrations
 

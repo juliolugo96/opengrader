@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, FileCheck2, History, Settings2 } from "lucide-react";
+import { ClipboardList, CreditCard, FileCheck2, History, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -11,6 +11,7 @@ const navigation = [
   { href: "/jobs", label: "Grading jobs", shortLabel: "Jobs", icon: ClipboardList },
   { href: "/pdf", label: "PDF grading", shortLabel: "PDFs", icon: FileCheck2 },
   { href: "/audit", label: "Audit trail", shortLabel: "Audit", icon: History },
+  { href: "/billing", label: "Billing & usage", shortLabel: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", shortLabel: "Settings", icon: Settings2 }
 ] as const;
 
@@ -63,7 +64,7 @@ export function AppSidebar() {
 
       <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-4 rounded-2xl border bg-card/95 p-1.5 shadow-panel backdrop-blur-xl md:hidden"
+        className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 rounded-2xl border bg-card/95 p-1.5 shadow-panel backdrop-blur-xl md:hidden"
       >
         {navigation.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

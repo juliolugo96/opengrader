@@ -30,6 +30,14 @@ authenticated PDF upload ─> bounded server storage ─> strict PDF validation
                             annotated PDF + embedded feedback JSON
 ```
 
+```text
+API-key fingerprint ─> billing account ─> hosted entitlement check
+                              ▲                     │
+signed Stripe webhook ─> idempotent ledger         │
+                                                    ▼
+accepted job/PDF ─> isolated usage outbox ─> Stripe meter-event worker
+```
+
 ## Components
 
 - `config.py` defines the strict Pydantic assignment schema and translates YAML
@@ -57,6 +65,14 @@ authenticated PDF upload ─> bounded server storage ─> strict PDF validation
   events without handling uploaded bytes.
 - `pdf_service.py` streams untrusted uploads into generated storage paths,
   enforces byte/page boundaries, and coordinates final export.
+- `billing_contract.py` owns the fail-closed subscription entitlement and usage
+  quantity rules.
+- `billing_repository.py` owns billing accounts, the Stripe webhook ledger, and
+  the grading-usage outbox in tables separate from grading records.
+- `billing_service.py` coordinates Checkout, portal, webhook projection,
+  entitlement enforcement, and background usage delivery.
+- `stripe_gateway.py` is the narrow Stripe SDK adapter. It is the only module
+  that knows Stripe request shapes.
 
 Each test starts from a fresh copy of the submission. In Docker mode the source
 is mounted read-only, copied into an in-memory workspace, and run without network
@@ -77,3 +93,12 @@ PDF submissions are separate from automated jobs. Their state machine is
 under `OPENGRADER_PDF_STORAGE_ROOT/{generated-id}/`, while SQLite stores only
 validated metadata and grading state. Annotation coordinates are normalized
 from the page's top-left and translated into PDF points during export.
+
+Billing is opt-in. With `OPENGRADER_BILLING_ENABLED=false`, entitlement checks
+are no-ops and no usage events are stored or sent. Hosted mode identifies a
+tenant by the existing non-secret API-key fingerprint, accepts subscription
+state only from signed webhooks, and grants access only for `active` or
+`trialing`. Webhook IDs make replay idempotent and event timestamps prevent
+older deliveries from overwriting newer state. Accepted jobs and PDFs create
+independent outbox records; a background worker sends them with their UUID as
+the Stripe meter-event identifier and retries failures without changing grades.

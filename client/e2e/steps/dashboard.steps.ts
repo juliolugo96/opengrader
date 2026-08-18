@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 
-import type { PdfGradeRequest, PdfSubmission } from "../../src/types/grader";
+import type { BillingOverview, PdfGradeRequest, PdfSubmission } from "../../src/types/grader";
 
 const { Given, When, Then } = createBdd();
 
@@ -91,6 +91,17 @@ const draftPdfSubmission: PdfSubmission = {
 
 let pdfSubmission: PdfSubmission = { ...draftPdfSubmission };
 
+const billingOverview: BillingOverview = {
+  mode: "hosted",
+  status: "active",
+  entitled: true,
+  customer_configured: true,
+  subscription_configured: true,
+  current_period_end: "2026-09-18T00:00:00Z",
+  cancel_at_period_end: false,
+  usage: { total_units: 12, reported_units: 10, pending_units: 2 }
+};
+
 Given("saved OpenGrader API credentials", async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem("opengrader.settings.v1", JSON.stringify({
@@ -109,7 +120,9 @@ Given("a deterministic grader API", async ({ page }) => {
     let payload: unknown;
 
     if (apiPath === "/health") {
-      payload = { status: "ok", version: "0.5.0", authentication_configured: true };
+      payload = { status: "ok", version: "0.6.0", authentication_configured: true };
+    } else if (apiPath === "/v1/billing/overview") {
+      payload = billingOverview;
     } else if (apiPath === `/v1/pdf-submissions/${draftPdfSubmission.id}/document`) {
       await route.fulfill({ status: 200, contentType: "application/pdf", body: "%PDF-1.4\n%%EOF" });
       return;
@@ -269,4 +282,20 @@ Then("I can download the annotated feedback PDF", async ({ page }) => {
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download feedback PDF" }).click();
   expect((await download).suggestedFilename()).toBe("pdf-submission-1-feedback.pdf");
+});
+
+When("I open billing and usage", async ({ page }) => {
+  await page.goto("/billing");
+});
+
+Then("I see an active hosted subscription", async ({ page }) => {
+  await expect(page.getByText("Active subscription")).toBeVisible();
+  await expect(page.getByText("Hosted grading is enabled")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Manage subscription" })).toBeVisible();
+});
+
+Then("I see accepted, reported, and pending usage units", async ({ page }) => {
+  await expect(page.getByText("Accepted units").locator("..").locator("..")).toContainText("12");
+  await expect(page.getByText("Reported to Stripe").locator("..").locator("..")).toContainText("10");
+  await expect(page.getByText("Pending delivery").locator("..").locator("..")).toContainText("2");
 });

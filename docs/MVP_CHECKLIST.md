@@ -61,3 +61,15 @@ see [SECURITY.md](SECURITY.md).
 - [x] PDF queue, authenticated preview, and grading workspace
 - [x] Unit, integration, API Gherkin, browser Gherkin, and mutation tests
 - [x] MVP 5 architecture, security, API, and TDAID documentation
+
+## MVP 6
+
+- [x] Billing disabled by default with unlimited local grading
+- [x] Hosted active/trialing entitlement enforcement
+- [x] Server-owned Stripe Checkout and Customer Portal sessions
+- [x] Raw-body webhook signature verification
+- [x] Idempotent event ledger and timestamp-ordered subscription projection
+- [x] Durable, retryable, idempotent usage-meter outbox
+- [x] Billing and usage dashboard with accessible subscription states
+- [x] Unit, integration, API Gherkin, browser Gherkin, and mutation tests
+- [x] MVP 6 architecture, operations, security, and TDAID documentation

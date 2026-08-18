@@ -35,6 +35,27 @@ fails closed with `503` when no keys are configured, compares supplied keys in
 constant time, and writes only a short SHA-256 fingerprint to audit records.
 Raw keys are neither persisted nor returned.
 
+## Hosted billing
+
+Billing is disabled by default. When enabled, Stripe secret and webhook keys
+remain server-only and are excluded from the `ApiSettings` representation. The
+webhook endpoint is the only unauthenticated `/v1` route; it reads the exact raw
+request body and verifies the `Stripe-Signature` header before processing.
+Browser redirects and Checkout success query parameters never grant access.
+
+Subscription events must carry OpenGrader's opaque key fingerprint metadata and
+the configured metered Price. Event IDs are stored before applying changes, and
+older event timestamps cannot overwrite a newer subscription projection. Only
+`active` and `trialing` states authorize new hosted work. Stripe-hosted URLs are
+created from server configuration rather than accepting arbitrary prices or
+return URLs from clients.
+
+Use restricted Stripe keys where available, rotate secrets through the hosting
+platform, register only the documented webhook event types, and terminate TLS
+before the API. Do not log webhook bodies or Stripe objects: they can contain
+customer billing data. Limit request size for the webhook route and monitor
+repeated signature failures.
+
 ## PDF uploads
 
 Uploaded PDFs are untrusted complex documents. OpenGrader stores them under a
@@ -72,7 +93,14 @@ executes trusted submission code with the API process user's host permissions.
 - Strong multi-tenant deployments need worker isolation, image policy, quotas,
   centralized audit logs, and additional sandboxing such as microVMs.
 - API keys have no built-in rotation, scope, expiration, or rate limiting.
+- A hosted subscription is keyed to its API-key fingerprint. Rotating that key
+  requires an operator migration of the billing account in this MVP.
 - PDF validation is in-process rather than isolated in a parser sandbox.
+- Hosted billing uses a single-process usage worker; horizontally scaled
+  deployments need leased outbox claims or a distributed queue.
+- Stripe event timestamps have one-second resolution. Equal-timestamp lifecycle
+  events rely on delivery order; operators should reconcile anomalous accounts
+  against Stripe before granting manual overrides.
 
 Report vulnerabilities privately to the project maintainers rather than opening
 a public issue containing exploit details.

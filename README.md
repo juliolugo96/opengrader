@@ -5,7 +5,9 @@ HTTP interfaces. It discovers one submission per folder, runs assignment tests
 in isolated Docker containers, and writes JSON, Markdown, and CSV reports. The
 authenticated service and dashboard add durable asynchronous jobs, an audit
 trail, and manual PDF grading with rubrics, page annotations, and
-feedback-preserving exports.
+feedback-preserving exports. Hosted deployments can optionally enforce Stripe
+subscriptions and meter accepted grading operations while local grading stays
+free.
 
 ## Requirements
 
@@ -95,6 +97,16 @@ PDFs containing an embedded structured feedback record. The default upload
 limits are 10 MiB and 200 pages; see the [API operations guide](docs/API.md) and
 [MVP 5 design](docs/MVP5_DESIGN.md).
 
+## Hosted billing
+
+Billing is disabled by default. In hosted mode, the **Billing & usage** dashboard
+starts Stripe Checkout, opens the Customer Portal, displays webhook-derived
+subscription state, and tracks durable usage delivery. Access is granted only
+from signed Stripe lifecycle webhooks; Checkout redirects are never trusted as
+proof of payment. See the [MVP 6 design](docs/MVP6_DESIGN.md) and
+[API operations guide](docs/API.md) for Stripe meter, Price, webhook, and
+environment configuration.
+
 ## Assignment format
 
 ```yaml
@@ -144,6 +156,6 @@ pytest -m e2e
 mutmut run
 ```
 
-See the [MVP 5 design](docs/MVP5_DESIGN.md), [TDAID record](docs/TDAID_MVP5.md),
+See the [MVP 6 design](docs/MVP6_DESIGN.md), [TDAID record](docs/TDAID_MVP6.md),
 [architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and
 [roadmap](docs/ROADMAP.md) for scope and design details.

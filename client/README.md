@@ -47,3 +47,11 @@ timeout.
 keeps rubric and annotation editing in the browser, and sends one validated
 grade payload to the API. After finalization the workspace becomes read-only
 and exposes the annotated feedback PDF download.
+
+## Billing and usage
+
+`/billing` makes the local-free boundary explicit when server billing is off.
+In hosted mode it renders Stripe subscription status, renewal or cancellation
+timing, accepted/reported/pending usage units, Checkout email validation, and a
+Customer Portal action. The browser supplies only the billing email; Price IDs,
+return URLs, customer binding, and entitlement decisions stay server-owned.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
@@ -131,6 +131,12 @@ class ApiSettings:
     pdf_storage_root: Path = Path(".opengrader/pdfs")
     pdf_max_upload_bytes: int = 10 * 1024 * 1024
     pdf_max_pages: int = 200
+    billing_enabled: bool = False
+    stripe_secret_key: str | None = field(default=None, repr=False)
+    stripe_webhook_secret: str | None = field(default=None, repr=False)
+    stripe_price_id: str | None = None
+    public_url: str = "http://localhost:3000"
+    stripe_meter_event_name: str = "opengrader_grading_units"
     api_keys: tuple[str, ...] = ()
     poll_interval: float = 0.25
 
@@ -141,6 +147,19 @@ class ApiSettings:
             raise ValueError("pdf_max_upload_bytes must be positive")
         if self.pdf_max_pages <= 0:
             raise ValueError("pdf_max_pages must be positive")
+        if self.billing_enabled and not all(
+            (self.stripe_secret_key, self.stripe_webhook_secret, self.stripe_price_id)
+        ):
+            raise ValueError(
+                "Hosted billing requires STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, "
+                "and OPENGRADER_STRIPE_PRICE_ID"
+            )
+        if not self.public_url.startswith(("http://", "https://")):
+            raise ValueError("public_url must use HTTP or HTTPS")
+        if not 1 <= len(self.stripe_meter_event_name) <= 100:
+            raise ValueError(
+                "stripe_meter_event_name must contain between 1 and 100 characters"
+            )
 
     @classmethod
     def from_env(cls) -> ApiSettings:
@@ -165,6 +184,14 @@ class ApiSettings:
                 os.getenv("OPENGRADER_PDF_MAX_UPLOAD_BYTES", str(10 * 1024 * 1024))
             ),
             pdf_max_pages=int(os.getenv("OPENGRADER_PDF_MAX_PAGES", "200")),
+            billing_enabled=_env_bool("OPENGRADER_BILLING_ENABLED", False),
+            stripe_secret_key=os.getenv("STRIPE_SECRET_KEY") or None,
+            stripe_webhook_secret=os.getenv("STRIPE_WEBHOOK_SECRET") or None,
+            stripe_price_id=os.getenv("OPENGRADER_STRIPE_PRICE_ID") or None,
+            public_url=os.getenv("OPENGRADER_PUBLIC_URL", "http://localhost:3000"),
+            stripe_meter_event_name=os.getenv(
+                "OPENGRADER_STRIPE_METER_EVENT_NAME", "opengrader_grading_units"
+            ),
             api_keys=keys,
             poll_interval=float(os.getenv("OPENGRADER_POLL_INTERVAL", "0.25")),
         )
@@ -173,4 +200,18 @@ class ApiSettings:
 def api_key_id(api_key: str) -> str:
     """Return a non-secret stable identifier suitable for audit records."""
 
-    return hashlib.sha256(api_key.encode()).hexdigest()[:12]
+    # A 96-bit fingerprint remains compact in audit records while avoiding the
+    # collision risk of a 48-bit identifier now that it also scopes billing.
+    return hashlib.sha256(api_key.encode()).hexdigest()[:24]
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{name} must be a boolean")

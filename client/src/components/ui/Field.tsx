@@ -33,6 +33,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field(
         <span
           className={cn("block text-xs text-muted-foreground", error && "text-danger")}
           id={`${inputId}-description`}
+          role={error ? "alert" : undefined}
         >
           {error ?? hint}
         </span>

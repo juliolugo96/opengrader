@@ -14,6 +14,7 @@ const pageNames: Record<string, string> = {
   jobs: "Grading jobs",
   pdf: "PDF grading",
   audit: "Audit trail",
+  billing: "Billing & usage",
   settings: "Connection settings"
 };
 

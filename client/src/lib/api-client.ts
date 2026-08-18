@@ -1,6 +1,8 @@
 import { getSettings, type AppSettings } from "@/lib/storage";
 import type {
   AuditEvent,
+  BillingOverview,
+  BillingSessionResponse,
   CreateJobInput,
   HealthResponse,
   Job,
@@ -78,6 +80,22 @@ export function createJob(input: CreateJobInput): Promise<Job> {
       no_docker: input.noDocker
     })
   });
+}
+
+export function getBillingOverview(): Promise<BillingOverview> {
+  return apiRequest<BillingOverview>("/v1/billing/overview");
+}
+
+export function createBillingCheckout(email: string): Promise<BillingSessionResponse> {
+  return apiRequest<BillingSessionResponse>("/v1/billing/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.trim() })
+  });
+}
+
+export function createBillingPortal(): Promise<BillingSessionResponse> {
+  return apiRequest<BillingSessionResponse>("/v1/billing/portal", { method: "POST" });
 }
 
 export function listPdfSubmissions(options: { limit?: number; offset?: number } = {}): Promise<PdfSubmission[]> {

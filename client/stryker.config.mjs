@@ -1,10 +1,11 @@
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 const config = {
   mutate: [
-    "src/lib/api-client.ts:37-53",
-    "src/lib/api-client.ts:68-80",
-    "src/lib/api-client.ts:83-131",
-    "src/lib/api-client.ts:134-181",
+    "src/lib/api-client.ts:33-55",
+    "src/lib/api-client.ts:70-99",
+    "src/lib/api-client.ts:101-150",
+    "src/lib/api-client.ts:152-200",
+    "src/components/billing/BillingPanel.tsx:62-69",
     "src/lib/utils.ts:30-38",
     "src/lib/utils.ts:48-68",
     "src/lib/utils.ts:78-92"

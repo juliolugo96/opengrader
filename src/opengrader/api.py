@@ -14,6 +14,7 @@ from fastapi import (
     Form,
     HTTPException,
     Query,
+    Request,
     Security,
     UploadFile,
     status,
@@ -22,6 +23,21 @@ from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from opengrader import __version__
+from opengrader.billing import (
+    BillingCheckoutRequest,
+    BillingOverview,
+    BillingSessionResponse,
+    BillingWebhookResponse,
+)
+from opengrader.billing_repository import BillingRepository
+from opengrader.billing_service import (
+    BillingGateway,
+    BillingNotConfigured,
+    BillingRequired,
+    BillingService,
+    BillingUsageWorker,
+    BillingWebhookError,
+)
 from opengrader.api_models import (
     ApiJobRequest,
     ApiSettings,
@@ -36,6 +52,7 @@ from opengrader.repository import JobRepository
 from opengrader.pdf_grading import PdfGradeRequest, PdfSubmissionRecord
 from opengrader.pdf_repository import PdfSubmissionRepository
 from opengrader.pdf_service import PdfGradingService, PdfUploadTooLarge
+from opengrader.stripe_gateway import StripeBillingGateway
 from opengrader.worker import JobWorker, RunnerFactory, default_runner_factory
 
 
@@ -43,12 +60,30 @@ def create_app(
     settings: ApiSettings | None = None,
     *,
     runner_factory: RunnerFactory = default_runner_factory,
+    billing_gateway: BillingGateway | None = None,
 ) -> FastAPI:
     """Build an independently configurable API application."""
 
     active_settings = settings or ApiSettings.from_env()
     repository = JobRepository(active_settings.database_path)
     pdf_repository = PdfSubmissionRepository(active_settings.database_path)
+    billing_repository = BillingRepository(active_settings.database_path)
+    active_billing_gateway = billing_gateway
+    if active_settings.billing_enabled and active_billing_gateway is None:
+        active_billing_gateway = StripeBillingGateway(
+            secret_key=active_settings.stripe_secret_key or "",
+            price_id=active_settings.stripe_price_id or "",
+            public_url=active_settings.public_url,
+        )
+    billing_service = BillingService(
+        billing_repository,
+        enabled=active_settings.billing_enabled,
+        gateway=active_billing_gateway,
+        webhook_secret=active_settings.stripe_webhook_secret,
+        price_id=active_settings.stripe_price_id,
+        meter_event_name=active_settings.stripe_meter_event_name,
+    )
+    billing_usage_worker = BillingUsageWorker(billing_service)
     pdf_service = PdfGradingService(
         pdf_repository,
         storage_root=active_settings.pdf_storage_root,
@@ -67,11 +102,14 @@ def create_app(
         del application
         repository.initialize()
         pdf_repository.initialize()
+        billing_repository.initialize()
         worker.start()
+        billing_usage_worker.start()
         try:
             yield
         finally:
             worker.stop()
+            billing_usage_worker.stop()
 
     application = FastAPI(
         title="OpenGrader API",
@@ -82,6 +120,9 @@ def create_app(
     application.state.repository = repository
     application.state.pdf_repository = pdf_repository
     application.state.pdf_service = pdf_service
+    application.state.billing_repository = billing_repository
+    application.state.billing_service = billing_service
+    application.state.billing_usage_worker = billing_usage_worker
     application.state.worker = worker
 
     bearer = HTTPBearer(auto_error=False)
@@ -124,7 +165,10 @@ def create_app(
         tags=["jobs"],
     )
     def create_job(request: ApiJobRequest, actor: Actor) -> JobResponse:
+        _require_billing_entitlement(billing_service, actor)
         job = repository.create_job(request, actor=actor)
+        billing_service.record_usage(actor, resource_type="job", resource_id=job.id)
+        billing_usage_worker.notify()
         worker.notify()
         return JobResponse.from_record(job)
 
@@ -184,14 +228,70 @@ def create_app(
         title: Annotated[str, Form(min_length=1, max_length=200)],
         file: Annotated[UploadFile, File()],
     ) -> PdfSubmissionRecord:
+        _require_billing_entitlement(billing_service, actor)
         try:
-            return await pdf_service.ingest(
+            submission = await pdf_service.ingest(
                 file, student_id=student_id, title=title, actor=actor
             )
+            billing_service.record_usage(
+                actor,
+                resource_type="pdf_submission",
+                resource_id=submission.id,
+            )
+            billing_usage_worker.notify()
+            return submission
         except PdfUploadTooLarge as exc:
             raise HTTPException(status_code=413, detail=str(exc)) from exc
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @application.get(
+        "/v1/billing/overview",
+        response_model=BillingOverview,
+        tags=["billing"],
+    )
+    def get_billing_overview(actor: Actor) -> BillingOverview:
+        return billing_service.overview(actor)
+
+    @application.post(
+        "/v1/billing/checkout",
+        response_model=BillingSessionResponse,
+        tags=["billing"],
+    )
+    def create_billing_checkout(
+        request: BillingCheckoutRequest, actor: Actor
+    ) -> BillingSessionResponse:
+        try:
+            return billing_service.create_checkout(actor, email=request.email)
+        except (BillingNotConfigured, BillingRequired) as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @application.post(
+        "/v1/billing/portal",
+        response_model=BillingSessionResponse,
+        tags=["billing"],
+    )
+    def create_billing_portal(actor: Actor) -> BillingSessionResponse:
+        try:
+            return billing_service.create_portal(actor)
+        except (BillingNotConfigured, BillingRequired) as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @application.post(
+        "/v1/billing/webhook",
+        response_model=BillingWebhookResponse,
+        tags=["billing"],
+    )
+    async def receive_billing_webhook(request: Request) -> BillingWebhookResponse:
+        signature = request.headers.get("stripe-signature")
+        if not signature:
+            raise HTTPException(status_code=400, detail="Stripe signature is missing")
+        try:
+            processed = billing_service.handle_webhook(await request.body(), signature)
+        except (BillingNotConfigured, BillingWebhookError) as exc:
+            raise HTTPException(status_code=400, detail="Invalid Stripe webhook") from exc
+        billing_usage_worker.notify()
+        return BillingWebhookResponse(processed=processed)
 
     @application.get(
         "/v1/pdf-submissions",
@@ -284,6 +384,15 @@ def create_app(
         return repository.list_audit_events(limit=limit)
 
     return application
+
+
+def _require_billing_entitlement(service: BillingService, actor: str) -> None:
+    try:
+        service.require_entitlement(actor)
+    except BillingRequired as exc:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)
+        ) from exc
 
 
 def _unauthorized() -> HTTPException:

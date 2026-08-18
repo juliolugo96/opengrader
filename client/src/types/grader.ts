@@ -155,3 +155,35 @@ export interface PdfUploadInput {
   studentId: string;
   title: string;
 }
+
+export type SubscriptionStatus =
+  | "none"
+  | "incomplete"
+  | "incomplete_expired"
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "unpaid"
+  | "paused";
+
+export interface BillingUsageSummary {
+  total_units: number;
+  reported_units: number;
+  pending_units: number;
+}
+
+export interface BillingOverview {
+  mode: "local" | "hosted";
+  status: SubscriptionStatus;
+  entitled: boolean;
+  customer_configured: boolean;
+  subscription_configured: boolean;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  usage: BillingUsageSummary;
+}
+
+export interface BillingSessionResponse {
+  url: string;
+}

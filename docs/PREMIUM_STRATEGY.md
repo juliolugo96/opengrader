@@ -24,3 +24,6 @@ The open formats and engine prevent lock-in: institutions can export assignments
 submissions, and results and return to the local CLI. Premium code should integrate
 through stable interfaces rather than weakening or duplicating the free core.
 
+MVP 6 implements the first paid boundary as an opt-in hosted subscription. It
+meters accepted grading operations through a separate durable outbox while the
+local CLI, API, PDF workflow, and report formats remain unrestricted.

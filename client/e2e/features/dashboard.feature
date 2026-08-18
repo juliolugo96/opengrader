@@ -31,3 +31,8 @@ Feature: OpenGrader operations dashboard
     And I finalize the PDF grade
     Then I see the finalized rubric total
     And I can download the annotated feedback PDF
+
+  Scenario: Inspect hosted subscription and meter delivery
+    When I open billing and usage
+    Then I see an active hosted subscription
+    And I see accepted, reported, and pending usage units
