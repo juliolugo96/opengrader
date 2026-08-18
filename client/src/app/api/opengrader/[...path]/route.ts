@@ -10,6 +10,10 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
   return proxyRequest(request, context);
 }
 
+export async function PUT(request: NextRequest, context: RouteContext): Promise<Response> {
+  return proxyRequest(request, context);
+}
+
 interface RouteContext {
   params: Promise<{ path: string[] }>;
 }
@@ -42,18 +46,18 @@ async function proxyRequest(request: NextRequest, context: RouteContext): Promis
     const response = await fetch(target, {
       method: request.method,
       headers,
-      body: request.method === "GET" ? undefined : await request.text(),
+      body: request.method === "GET" ? undefined : await request.arrayBuffer(),
       cache: "no-store",
       redirect: "error",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
     });
-    return new Response(response.body, {
-      status: response.status,
-      headers: {
-        "Content-Type": response.headers.get("content-type") ?? "application/json",
-        "Cache-Control": "no-store"
-      }
+    const responseHeaders = new Headers({
+      "Content-Type": response.headers.get("content-type") ?? "application/json",
+      "Cache-Control": "no-store"
     });
+    const contentDisposition = response.headers.get("content-disposition");
+    if (contentDisposition) responseHeaders.set("Content-Disposition", contentDisposition);
+    return new Response(response.body, { status: response.status, headers: responseHeaders });
   } catch (error) {
     const message = error instanceof Error ? error.message : "OpenGrader is unreachable";
     return Response.json({ detail: message }, { status: 502 });

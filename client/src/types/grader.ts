@@ -100,3 +100,58 @@ export interface GradebookMetrics {
   totalScore: number;
   maximumScore: number;
 }
+
+export type PdfSubmissionStatus = "draft" | "finalized";
+
+export interface RubricCriterion {
+  id: string;
+  title: string;
+  description: string;
+  max_points: number;
+}
+
+export interface RubricScore {
+  criterion_id: string;
+  points: number;
+  feedback: string;
+}
+
+export interface PdfAnnotation {
+  id?: string;
+  page: number;
+  x: number;
+  y: number;
+  comment: string;
+}
+
+export interface PdfGradeRequest {
+  rubric: RubricCriterion[];
+  scores: RubricScore[];
+  annotations: PdfAnnotation[];
+  overall_feedback: string;
+  finalized: boolean;
+}
+
+export interface PdfSubmission {
+  id: string;
+  student_id: string;
+  title: string;
+  original_filename: string;
+  size_bytes: number;
+  sha256: string;
+  page_count: number;
+  status: PdfSubmissionStatus;
+  grade: PdfGradeRequest | null;
+  total_score: number;
+  maximum_points: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  finalized_at: string | null;
+}
+
+export interface PdfUploadInput {
+  file: File;
+  studentId: string;
+  title: string;
+}

@@ -128,12 +128,19 @@ class JobResultResponse(BaseModel):
 class ApiSettings:
     database_path: Path = Path(".opengrader/jobs.db")
     output_root: Path = Path(".opengrader/reports")
+    pdf_storage_root: Path = Path(".opengrader/pdfs")
+    pdf_max_upload_bytes: int = 10 * 1024 * 1024
+    pdf_max_pages: int = 200
     api_keys: tuple[str, ...] = ()
     poll_interval: float = 0.25
 
     def __post_init__(self) -> None:
         if self.poll_interval <= 0:
             raise ValueError("poll_interval must be positive")
+        if self.pdf_max_upload_bytes <= 0:
+            raise ValueError("pdf_max_upload_bytes must be positive")
+        if self.pdf_max_pages <= 0:
+            raise ValueError("pdf_max_pages must be positive")
 
     @classmethod
     def from_env(cls) -> ApiSettings:
@@ -151,6 +158,13 @@ class ApiSettings:
             output_root=Path(
                 os.getenv("OPENGRADER_OUTPUT_ROOT", ".opengrader/reports")
             ),
+            pdf_storage_root=Path(
+                os.getenv("OPENGRADER_PDF_STORAGE_ROOT", ".opengrader/pdfs")
+            ),
+            pdf_max_upload_bytes=int(
+                os.getenv("OPENGRADER_PDF_MAX_UPLOAD_BYTES", str(10 * 1024 * 1024))
+            ),
+            pdf_max_pages=int(os.getenv("OPENGRADER_PDF_MAX_PAGES", "200")),
             api_keys=keys,
             poll_interval=float(os.getenv("OPENGRADER_POLL_INTERVAL", "0.25")),
         )

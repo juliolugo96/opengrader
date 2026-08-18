@@ -35,6 +35,23 @@ fails closed with `503` when no keys are configured, compares supplied keys in
 constant time, and writes only a short SHA-256 fingerprint to audit records.
 Raw keys are neither persisted nor returned.
 
+## PDF uploads
+
+Uploaded PDFs are untrusted complex documents. OpenGrader stores them under a
+generated UUID rather than a client-controlled path, streams them in bounded
+chunks, rejects them above the configured byte limit, parses them in strict
+mode, and rejects encrypted, empty, malformed, or excessive-page documents.
+Original files and generated feedback are outside the dashboard's static root.
+
+These controls reduce exposure but do not make PDF parsing risk-free. Keep
+`pypdf` current, run the API as a least-privilege user, keep the PDF storage root
+free of secrets, and configure an equal or lower request-body limit at the
+reverse proxy so oversized requests are rejected before application parsing.
+Returned PDFs may still contain active features already present in the original;
+instructors should use a patched viewer and avoid trusting embedded links or
+attachments. OpenGrader adds only printable text annotations and its own JSON
+feedback attachment.
+
 API requests contain server-local paths, so authenticated callers can ask the
 service to read assignment and submission directories accessible to its OS
 account. Treat keys as privileged credentials, run OpenGrader under a dedicated
@@ -55,6 +72,7 @@ executes trusted submission code with the API process user's host permissions.
 - Strong multi-tenant deployments need worker isolation, image policy, quotas,
   centralized audit logs, and additional sandboxing such as microVMs.
 - API keys have no built-in rotation, scope, expiration, or rate limiting.
+- PDF validation is in-process rather than isolated in a parser sandbox.
 
 Report vulnerabilities privately to the project maintainers rather than opening
 a public issue containing exploit details.

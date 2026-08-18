@@ -18,6 +18,9 @@ pytestmark = pytest.mark.unit
 def test_settings_load_paths_keys_and_poll_interval(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OPENGRADER_DATABASE", str(tmp_path / "jobs.db"))
     monkeypatch.setenv("OPENGRADER_OUTPUT_ROOT", str(tmp_path / "reports"))
+    monkeypatch.setenv("OPENGRADER_PDF_STORAGE_ROOT", str(tmp_path / "pdfs"))
+    monkeypatch.setenv("OPENGRADER_PDF_MAX_UPLOAD_BYTES", "2048")
+    monkeypatch.setenv("OPENGRADER_PDF_MAX_PAGES", "25")
     monkeypatch.setenv("OPENGRADER_API_KEYS", " first, second ,,first ")
     monkeypatch.setenv("OPENGRADER_POLL_INTERVAL", "0.25")
 
@@ -25,6 +28,9 @@ def test_settings_load_paths_keys_and_poll_interval(monkeypatch, tmp_path: Path)
 
     assert settings.database_path == tmp_path / "jobs.db"
     assert settings.output_root == tmp_path / "reports"
+    assert settings.pdf_storage_root == tmp_path / "pdfs"
+    assert settings.pdf_max_upload_bytes == 2048
+    assert settings.pdf_max_pages == 25
     assert settings.api_keys == ("first", "second")
     assert settings.poll_interval == 0.25
 

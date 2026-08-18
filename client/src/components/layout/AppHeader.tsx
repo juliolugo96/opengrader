@@ -12,6 +12,7 @@ import { useSettings } from "@/lib/use-settings";
 
 const pageNames: Record<string, string> = {
   jobs: "Grading jobs",
+  pdf: "PDF grading",
   audit: "Audit trail",
   settings: "Connection settings"
 };

@@ -18,6 +18,18 @@ authenticated HTTP request ─> SQLite job + audit event ─> background worker
                                       └─ status/result API <────┘
 ```
 
+```text
+authenticated PDF upload ─> bounded server storage ─> strict PDF validation
+                                      │                         │
+                                      └─ SQLite draft <─────────┘
+                                             │
+                           rubric + page annotations + feedback
+                                             │
+                                      immutable finalization
+                                             │
+                            annotated PDF + embedded feedback JSON
+```
+
 ## Components
 
 - `config.py` defines the strict Pydantic assignment schema and translates YAML
@@ -37,6 +49,14 @@ authenticated HTTP request ─> SQLite job + audit event ─> background worker
 - `repository.py` owns durable SQLite transitions and append-only audit events.
 - `worker.py` claims queued jobs and invokes the same grading pipeline used by
   the CLI, outside request handlers.
+- `pdf_contract.py` contains pure rubric, score, annotation-page, and coordinate
+  invariants.
+- `pdf_grading.py` defines the PDF grading contract, strictly validates parsed
+  documents, and renders feedback-preserving PDF exports.
+- `pdf_repository.py` persists PDF metadata, draft/finalized grades, and audit
+  events without handling uploaded bytes.
+- `pdf_service.py` streams untrusted uploads into generated storage paths,
+  enforces byte/page boundaries, and coordinates final export.
 
 Each test starts from a fresh copy of the submission. In Docker mode the source
 is mounted read-only, copied into an in-memory workspace, and run without network
@@ -51,3 +71,9 @@ The API's SQLite database is the source of truth. Its state machine is
 `queued -> running -> succeeded|failed`, with interrupted running jobs returned
 to `queued` on startup. MVP 3 deliberately runs one in-process worker in one API
 process; distributed leases and cancellation are future concerns.
+
+PDF submissions are separate from automated jobs. Their state machine is
+`draft -> finalized`; finalization is intentionally immutable. PDF bytes live
+under `OPENGRADER_PDF_STORAGE_ROOT/{generated-id}/`, while SQLite stores only
+validated metadata and grading state. Annotation coordinates are normalized
+from the page's top-left and translated into PDF points during export.

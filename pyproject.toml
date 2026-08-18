@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengrader"
-version = "0.3.0"
+version = "0.5.0"
 description = "A local-first, CLI autograder"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -12,7 +12,9 @@ license = { text = "MIT" }
 authors = [{ name = "OpenGrader contributors" }]
 dependencies = [
   "fastapi>=0.140,<1",
+  "pypdf>=6.14,<7",
   "pydantic>=2.7,<3",
+  "python-multipart>=0.0.20,<1",
   "PyYAML>=6.0,<7",
   "rich>=13.7,<15",
   "typer>=0.12,<1",
@@ -48,6 +50,7 @@ markers = [
 source_paths = [
   "src/opengrader/worker.py",
   "src/opengrader/mvp4_contract.py",
+  "src/opengrader/pdf_contract.py",
 ]
 pytest_add_cli_args_test_selection = ["tests/unit/"]
 also_copy = [
@@ -60,6 +63,10 @@ also_copy = [
   "src/opengrader/errors.py",
   "src/opengrader/grader.py",
   "src/opengrader/mvp4_contract.py",
+  "src/opengrader/pdf_contract.py",
+  "src/opengrader/pdf_grading.py",
+  "src/opengrader/pdf_repository.py",
+  "src/opengrader/pdf_service.py",
   "src/opengrader/repository.py",
   "src/opengrader/results.py",
   "src/opengrader/runners.py",

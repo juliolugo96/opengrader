@@ -1,6 +1,8 @@
 import { expect } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 
+import type { PdfGradeRequest, PdfSubmission } from "../../src/types/grader";
+
 const { Given, When, Then } = createBdd();
 
 const completedJob = {
@@ -69,6 +71,26 @@ const resultResponse = {
   }
 };
 
+const draftPdfSubmission: PdfSubmission = {
+  id: "pdf-submission-1",
+  student_id: "alice",
+  title: "Final essay",
+  original_filename: "essay.pdf",
+  size_bytes: 512,
+  sha256: "a".repeat(64),
+  page_count: 2,
+  status: "draft",
+  grade: null,
+  total_score: 0,
+  maximum_points: 0,
+  created_by: "key:0123456789ab",
+  created_at: "2026-08-18T12:00:00Z",
+  updated_at: "2026-08-18T12:00:00Z",
+  finalized_at: null
+};
+
+let pdfSubmission: PdfSubmission = { ...draftPdfSubmission };
+
 Given("saved OpenGrader API credentials", async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem("opengrader.settings.v1", JSON.stringify({
@@ -80,13 +102,42 @@ Given("saved OpenGrader API credentials", async ({ page }) => {
 });
 
 Given("a deterministic grader API", async ({ page }) => {
+  pdfSubmission = { ...draftPdfSubmission };
   await page.route("**/api/opengrader/**", async (route) => {
     const requestUrl = new URL(route.request().url());
     const apiPath = requestUrl.pathname.replace("/api/opengrader", "");
     let payload: unknown;
 
     if (apiPath === "/health") {
-      payload = { status: "ok", version: "0.4.0", authentication_configured: true };
+      payload = { status: "ok", version: "0.5.0", authentication_configured: true };
+    } else if (apiPath === `/v1/pdf-submissions/${draftPdfSubmission.id}/document`) {
+      await route.fulfill({ status: 200, contentType: "application/pdf", body: "%PDF-1.4\n%%EOF" });
+      return;
+    } else if (apiPath === `/v1/pdf-submissions/${draftPdfSubmission.id}/feedback.pdf`) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/pdf",
+        headers: { "Content-Disposition": "attachment; filename=feedback.pdf" },
+        body: "%PDF-1.4\n%%EOF"
+      });
+      return;
+    } else if (apiPath === `/v1/pdf-submissions/${draftPdfSubmission.id}/grade`) {
+      const grade = route.request().postDataJSON() as PdfGradeRequest;
+      pdfSubmission = {
+        ...pdfSubmission,
+        status: grade.finalized ? "finalized" : "draft",
+        grade,
+        total_score: grade.scores.reduce((sum, score) => sum + score.points, 0),
+        maximum_points: grade.rubric.reduce((sum, criterion) => sum + criterion.max_points, 0),
+        finalized_at: grade.finalized ? "2026-08-18T12:05:00Z" : null
+      };
+      payload = pdfSubmission;
+    } else if (apiPath === `/v1/pdf-submissions/${draftPdfSubmission.id}`) {
+      payload = pdfSubmission;
+    } else if (apiPath === "/v1/pdf-submissions" && route.request().method() === "POST") {
+      payload = pdfSubmission;
+    } else if (apiPath === "/v1/pdf-submissions") {
+      payload = [];
     } else if (apiPath === `/v1/jobs/${completedJob.id}/result`) {
       payload = resultResponse;
     } else if (apiPath === `/v1/jobs/${completedJob.id}`) {
@@ -171,4 +222,51 @@ Then("I see the chronological job lifecycle and key fingerprint", async ({ page 
   await expect(rows.nth(0)).toContainText("created");
   await expect(rows.nth(2)).toContainText("succeeded");
   await expect(page.getByText("key:0123456789ab")).toBeVisible();
+});
+
+When("I open PDF grading", async ({ page }) => {
+  await page.goto("/pdf");
+});
+
+When("I upload a two-page PDF submission", async ({ page }) => {
+  await page.getByLabel("Student ID").fill("alice");
+  await page.getByLabel("Assignment title").fill("Final essay");
+  await page.getByLabel("PDF submission", { exact: true }).setInputFiles({
+    name: "essay.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.4\n%%EOF")
+  });
+  await page.getByRole("button", { name: "Upload PDF" }).click();
+});
+
+Then("I see the PDF grading workspace", async ({ page }) => {
+  await expect(page).toHaveURL(`/pdf/${draftPdfSubmission.id}`);
+  await expect(page.getByRole("heading", { name: "Final essay" })).toBeVisible();
+  await expect(page.getByText("Rubric")).toBeVisible();
+});
+
+When("I score the rubric and add a page annotation", async ({ page }) => {
+  await page.getByLabel("Criterion 1 score").fill("8.5");
+  await page.getByLabel("Criterion 1 feedback").fill("Strong reasoning");
+  await page.getByLabel("Annotation page").selectOption("2");
+  await page.getByLabel("Horizontal position percent").fill("25");
+  await page.getByLabel("Vertical position percent").fill("40");
+  await page.getByLabel("Annotation comment").fill("Add a citation");
+  await page.getByRole("button", { name: "Add annotation" }).click();
+  await page.getByLabel("Overall feedback").fill("Good work.");
+});
+
+When("I finalize the PDF grade", async ({ page }) => {
+  await page.getByRole("button", { name: "Finalize grade" }).click();
+});
+
+Then("I see the finalized rubric total", async ({ page }) => {
+  await expect(page.getByText("Finalized grade")).toBeVisible();
+  await expect(page.getByText("8.5 / 10")).toBeVisible();
+});
+
+Then("I can download the annotated feedback PDF", async ({ page }) => {
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download feedback PDF" }).click();
+  expect((await download).suggestedFilename()).toBe("pdf-submission-1-feedback.pdf");
 });

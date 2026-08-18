@@ -2,8 +2,10 @@
 
 OpenGrader is an open-source, local-first autograder with CLI and authenticated
 HTTP interfaces. It discovers one submission per folder, runs assignment tests
-in isolated Docker containers, and writes JSON, Markdown, and CSV reports. MVP 3
-adds durable asynchronous jobs, result retrieval, and an audit trail.
+in isolated Docker containers, and writes JSON, Markdown, and CSV reports. The
+authenticated service and dashboard add durable asynchronous jobs, an audit
+trail, and manual PDF grading with rubrics, page annotations, and
+feedback-preserving exports.
 
 ## Requirements
 
@@ -84,6 +86,15 @@ completed result from `/v1/jobs/{id}/result`. See the [API operations guide](doc
 for every endpoint and environment setting. API-side `no_docker: true` has the
 same trusted-code warning as `--no-docker`.
 
+## PDF grading
+
+Open the dashboard's **PDF grading** section to upload a document, define a
+rubric, record criterion feedback, place normalized page comments, and finalize
+the grade. Finalized grades are immutable and can be downloaded as annotated
+PDFs containing an embedded structured feedback record. The default upload
+limits are 10 MiB and 200 pages; see the [API operations guide](docs/API.md) and
+[MVP 5 design](docs/MVP5_DESIGN.md).
+
 ## Assignment format
 
 ```yaml
@@ -133,6 +144,6 @@ pytest -m e2e
 mutmut run
 ```
 
-See the [MVP 3 design](docs/MVP3_DESIGN.md), [TDAID record](docs/TDAID_MVP3.md),
+See the [MVP 5 design](docs/MVP5_DESIGN.md), [TDAID record](docs/TDAID_MVP5.md),
 [architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and
 [roadmap](docs/ROADMAP.md) for scope and design details.

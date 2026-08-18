@@ -41,3 +41,23 @@
 MVP completion means the example command succeeds and the test suite passes. It
 does not imply that Docker alone is sufficient for adversarial multi-tenant use;
 see [SECURITY.md](SECURITY.md).
+
+## MVP 4
+
+- [x] Responsive React operations dashboard
+- [x] Complete paginated job history and result drill-down
+- [x] Cohort statistics, captured output, and report downloads
+- [x] Accessible loading, empty, success, and failure states
+- [x] Unit, proxy integration, Gherkin browser, and mutation tests
+
+## MVP 5
+
+- [x] Authenticated multipart PDF upload
+- [x] Streamed byte limits, strict parsing, encryption rejection, and page limits
+- [x] Durable PDF metadata and append-only audit events
+- [x] Structured rubrics with bounded manual scores and criterion feedback
+- [x] Page-specific normalized annotations and immutable finalization
+- [x] Annotated PDF export with embedded structured feedback
+- [x] PDF queue, authenticated preview, and grading workspace
+- [x] Unit, integration, API Gherkin, browser Gherkin, and mutation tests
+- [x] MVP 5 architecture, security, API, and TDAID documentation

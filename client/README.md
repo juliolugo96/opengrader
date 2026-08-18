@@ -39,3 +39,11 @@ without enabling permissive CORS on the grading API. It forwards only the
 request body, content type, and bearer header, rejects embedded URL credentials,
 uses a host allowlist, disables redirects and caching, and applies a 30-second
 timeout.
+
+## PDF grading
+
+`/pdf` lists durable PDF submissions and provides a multipart upload form.
+`/pdf/[id]` fetches the protected original document as a blob for preview,
+keeps rubric and annotation editing in the browser, and sends one validated
+grade payload to the API. After finalization the workspace becomes read-only
+and exposes the annotated feedback PDF download.

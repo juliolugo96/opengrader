@@ -17,7 +17,7 @@
 
 Deferred from MVP 2: progress callbacks and plagiarism-export hooks.
 
-## MVP 3 — API (current)
+## MVP 3 — API (complete)
 
 - FastAPI service around the grading engine (complete)
 - Persistent SQLite jobs and result metadata (complete)
@@ -25,14 +25,17 @@ Deferred from MVP 2: progress callbacks and plagiarism-export hooks.
 - In-process background grading and restart recovery (complete)
 - Local deployment and API operations documentation (complete)
 
-## MVP 4 — UI
+## MVP 4 — UI (complete)
 
 - React dashboard for assignments, runs, and feedback
 - Instructor and student views
 
-## MVP 5 — PDF grading
+## MVP 5 — PDF grading (complete)
 
-- PDF ingestion, rubrics, and annotations
+- Bounded, strict PDF ingestion with durable metadata
+- Rubric-based manual grading and immutable finalization
+- Normalized page annotations and feedback-preserving PDF export
+- Instructor dashboard and authenticated document preview
 
 ## MVP 6 — Billing
 

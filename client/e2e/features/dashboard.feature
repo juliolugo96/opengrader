@@ -22,3 +22,12 @@ Feature: OpenGrader operations dashboard
   Scenario: Trace the authenticated audit history
     When I open the audit trail
     Then I see the chronological job lifecycle and key fingerprint
+
+  Scenario: Upload, annotate, and finalize a PDF grade
+    When I open PDF grading
+    And I upload a two-page PDF submission
+    Then I see the PDF grading workspace
+    When I score the rubric and add a page annotation
+    And I finalize the PDF grade
+    Then I see the finalized rubric total
+    And I can download the annotated feedback PDF

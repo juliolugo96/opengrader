@@ -5,11 +5,15 @@ import type {
   HealthResponse,
   Job,
   JobResultResponse,
-  JobStatus
+  JobStatus,
+  PdfGradeRequest,
+  PdfSubmission,
+  PdfUploadInput
 } from "@/types/grader";
 
 interface RequestOptions extends RequestInit {
   authenticated?: boolean;
+  responseType?: "json" | "blob";
   settings?: AppSettings;
 }
 
@@ -76,8 +80,64 @@ export function createJob(input: CreateJobInput): Promise<Job> {
   });
 }
 
+export function listPdfSubmissions(options: { limit?: number; offset?: number } = {}): Promise<PdfSubmission[]> {
+  const search = new URLSearchParams({
+    limit: String(options.limit ?? 100),
+    offset: String(options.offset ?? 0)
+  });
+  return apiRequest<PdfSubmission[]>(`/v1/pdf-submissions?${search}`);
+}
+
+export async function listAllPdfSubmissions(): Promise<PdfSubmission[]> {
+  const pageSize = 100;
+  const submissions: PdfSubmission[] = [];
+  let page: PdfSubmission[];
+  do {
+    page = await listPdfSubmissions({ limit: pageSize, offset: submissions.length });
+    submissions.push(...page);
+  } while (page.length === pageSize);
+  return submissions;
+}
+
+export function getPdfSubmission(submissionId: string): Promise<PdfSubmission> {
+  return apiRequest<PdfSubmission>(`/v1/pdf-submissions/${encodeURIComponent(submissionId)}`);
+}
+
+export function uploadPdfSubmission(input: PdfUploadInput): Promise<PdfSubmission> {
+  const body = new FormData();
+  body.set("student_id", input.studentId.trim());
+  body.set("title", input.title.trim());
+  body.set("file", input.file);
+  return apiRequest<PdfSubmission>("/v1/pdf-submissions", { method: "POST", body });
+}
+
+export function savePdfGrade(submissionId: string, grade: PdfGradeRequest): Promise<PdfSubmission> {
+  return apiRequest<PdfSubmission>(`/v1/pdf-submissions/${encodeURIComponent(submissionId)}/grade`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(grade)
+  });
+}
+
+export function getPdfDocument(submissionId: string): Promise<Blob> {
+  return apiRequest<Blob>(`/v1/pdf-submissions/${encodeURIComponent(submissionId)}/document`, {
+    responseType: "blob"
+  });
+}
+
+export function getPdfFeedback(submissionId: string): Promise<Blob> {
+  return apiRequest<Blob>(`/v1/pdf-submissions/${encodeURIComponent(submissionId)}/feedback.pdf`, {
+    responseType: "blob"
+  });
+}
+
 async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { authenticated = true, settings: settingsOverride, ...fetchOptions } = options;
+  const {
+    authenticated = true,
+    responseType,
+    settings: settingsOverride,
+    ...fetchOptions
+  } = options;
   const settings = settingsOverride ?? getSettings();
   const headers = new Headers(fetchOptions.headers);
   headers.set("X-OpenGrader-Base-URL", settings.apiBaseUrl);
@@ -99,10 +159,12 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
     );
   }
 
-  const contentType = response.headers.get("content-type") ?? "";
-  const payload: unknown = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
+  const contentType = response.headers.get("content-type");
+  const payload: unknown = responseType === "blob" && response.ok
+    ? await response.blob()
+    : contentType?.includes("application/json")
+      ? await response.json()
+      : await response.text();
 
   if (!response.ok) {
     const message = extractErrorMessage(payload) ?? `OpenGrader returned ${response.status}`;

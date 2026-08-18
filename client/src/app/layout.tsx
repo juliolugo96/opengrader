@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono"
 
 export const metadata: Metadata = {
   title: { default: "OpenGrader Console", template: "%s · OpenGrader" },
-  description: "Operate grading jobs and inspect student results.",
+  description: "Operate automated grading jobs and review annotated PDF submissions.",
   icons: {
     icon: favicon.src,
     apple: favicon.src
