@@ -74,6 +74,13 @@ export interface JobResultResponse {
   job_id: string;
   result: GradingResult;
   reports: Record<string, string>;
+  statistics: ResultStatistics;
+}
+
+export interface ResultStatistics {
+  total_score: number;
+  maximum_points: number;
+  student_count: number;
 }
 
 export interface AuditEvent {

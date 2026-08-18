@@ -137,8 +137,18 @@ export function NewJobModal({
 
 function validate(input: CreateJobInput): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!input.assignmentPath.trim()) errors.assignmentPath = "Enter an assignment YAML path.";
-  if (!input.submissionsDirectory.trim()) errors.submissionsDirectory = "Enter a submissions directory.";
+  const assignmentPath = input.assignmentPath.trim();
+  const submissionsDirectory = input.submissionsDirectory.trim();
+  if (!assignmentPath) {
+    errors.assignmentPath = "Enter an assignment YAML path.";
+  } else if (hasControlCharacters(assignmentPath) || !/\.ya?ml$/i.test(assignmentPath)) {
+    errors.assignmentPath = "Use a valid .yaml or .yml assignment path.";
+  }
+  if (!submissionsDirectory) {
+    errors.submissionsDirectory = "Enter a submissions directory.";
+  } else if (hasControlCharacters(submissionsDirectory)) {
+    errors.submissionsDirectory = "Enter a valid submissions directory path.";
+  }
   if (!Number.isInteger(input.workers) || input.workers < 1 || input.workers > 64) {
     errors.workers = "Workers must be an integer from 1 to 64.";
   }
@@ -146,4 +156,8 @@ function validate(input: CreateJobInput): Record<string, string> {
     errors.retries = "Retries must be an integer from 0 to 10.";
   }
   return errors;
+}
+
+function hasControlCharacters(value: string): boolean {
+  return Array.from(value).some((character) => character.charCodeAt(0) < 32);
 }

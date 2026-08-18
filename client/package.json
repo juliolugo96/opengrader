@@ -13,7 +13,12 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepare:standalone": "node scripts/prepare-standalone.mjs",
+    "start:standalone": "node scripts/start-standalone.mjs",
+    "test:e2e": "npm run build && npm run prepare:standalone && bddgen && playwright test",
+    "test:mutation": "stryker run",
+    "test:all": "npm run lint && npm run typecheck && npm test && npm run test:e2e && npm run test:mutation"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
@@ -25,6 +30,9 @@
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -36,9 +44,13 @@
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.3.1",
     "jsdom": "^27.4.0",
+    "playwright-bdd": "^9.2.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
+  },
+  "overrides": {
+    "qs": "6.15.3"
   }
 }

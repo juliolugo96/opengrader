@@ -74,8 +74,32 @@ def test_invalid_request_and_query_bounds_do_not_create_jobs(tmp_path: Path) -> 
             headers=headers,
         )
         invalid_limit = client.get("/v1/jobs?limit=101", headers=headers)
+        invalid_offset = client.get("/v1/jobs?offset=-1", headers=headers)
         jobs = client.get("/v1/jobs", headers=headers)
 
     assert invalid_request.status_code == 422
     assert invalid_limit.status_code == 422
+    assert invalid_offset.status_code == 422
     assert jobs.json() == []
+
+
+def test_documented_request_aliases_and_offset_pagination(tmp_path: Path) -> None:
+    headers = {"Authorization": "Bearer valid-key"}
+    with TestClient(create_app(settings(tmp_path, "valid-key"))) as client:
+        created = [
+            client.post(
+                "/v1/jobs",
+                json={
+                    "assignment_path": f"assignments/hw{index}.yaml",
+                    "submissions_dir": "submissions",
+                    "submission_filter": "section-a-*",
+                },
+                headers=headers,
+            ).json()
+            for index in range(3)
+        ]
+        page = client.get("/v1/jobs?limit=1&offset=1", headers=headers)
+
+    assert page.status_code == 200
+    assert [job["id"] for job in page.json()] == [created[1]["id"]]
+    assert page.json()[0]["request"]["submission_patterns"] == ["section-a-*"]

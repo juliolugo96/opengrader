@@ -92,6 +92,18 @@ def test_claim_is_fifo_and_status_filter_is_applied(tmp_path: Path) -> None:
     assert [job.id for job in repository.list_jobs(status=JobStatus.RUNNING)] == [first.id]
 
 
+def test_job_listing_supports_stable_offset_pagination(tmp_path: Path) -> None:
+    repository = JobRepository(tmp_path / "jobs.db")
+    repository.initialize()
+    created = [repository.create_job(request(), actor=f"key:{index}") for index in range(3)]
+
+    first_page = repository.list_jobs(limit=2, offset=0)
+    second_page = repository.list_jobs(limit=2, offset=2)
+
+    assert [job.id for job in first_page] == [created[2].id, created[1].id]
+    assert [job.id for job in second_page] == [created[0].id]
+
+
 def test_failure_is_terminal_and_missing_job_returns_none(tmp_path: Path) -> None:
     repository = JobRepository(tmp_path / "jobs.db")
     repository.initialize()

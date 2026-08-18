@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { QueryError } from "@/components/ui/QueryError";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { createJob, listJobs } from "@/lib/api-client";
+import { createJob, listAllJobs } from "@/lib/api-client";
 import { useSettings } from "@/lib/use-settings";
 
 export default function JobsPage() {
@@ -22,7 +22,7 @@ export default function JobsPage() {
   const queryClient = useQueryClient();
   const jobs = useQuery({
     queryKey: ["jobs", settings.apiBaseUrl, Boolean(settings.apiKey)],
-    queryFn: () => listJobs({ limit: 100 }),
+    queryFn: listAllJobs,
     enabled: Boolean(settings.apiKey),
     refetchInterval: (query) => query.state.data?.some((job) => job.status === "queued" || job.status === "running") ? 3_000 : false
   });

@@ -3,3 +3,7 @@ node_modules/
 coverage/
 *.tsbuildinfo
 .env*.local
+.features-gen/
+playwright-report/
+test-results/
+reports/mutation/

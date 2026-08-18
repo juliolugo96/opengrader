@@ -8,9 +8,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opengrader.mvp4_contract import cohort_totals, normalize_job_request_payload
 from opengrader.results import GradingResult
 
 
@@ -32,6 +34,11 @@ class ApiJobRequest(BaseModel):
     workers: int = Field(default=1, ge=1, le=64)
     retries: int = Field(default=0, ge=0, le=10)
     submission_patterns: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def accept_documented_dashboard_fields(cls, value: Any) -> Any:
+        return normalize_job_request_payload(value)
 
 
 class JobRecord(BaseModel):
@@ -89,12 +96,32 @@ class JobResponse(BaseModel):
         )
 
 
+class ResultStatistics(BaseModel):
+    """Cohort-level totals returned with every completed result."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    total_score: float = Field(ge=0)
+    maximum_points: float = Field(ge=0)
+    student_count: int = Field(ge=0)
+
+    @classmethod
+    def from_result(cls, result: GradingResult) -> ResultStatistics:
+        total_score, maximum_points, student_count = cohort_totals(result)
+        return cls(
+            total_score=total_score,
+            maximum_points=maximum_points,
+            student_count=student_count,
+        )
+
+
 class JobResultResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     job_id: str
     result: GradingResult
     reports: dict[str, str]
+    statistics: ResultStatistics
 
 
 @dataclass(frozen=True, slots=True)

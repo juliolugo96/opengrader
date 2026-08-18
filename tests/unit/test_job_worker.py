@@ -239,8 +239,12 @@ def test_run_loop_waits_only_when_idle(tmp_path: Path) -> None:
         worker._stop_event.set()
         return False
 
+    def idle_wait(timeout: float | None = None) -> None:
+        waits.append(timeout)
+        worker._stop_event.set()
+
     monkeypatch_event = SimpleNamespace(
-        wait=lambda timeout=None: waits.append(timeout),
+        wait=idle_wait,
         clear=lambda: clears.append(True),
         set=lambda: None,
     )
@@ -255,6 +259,15 @@ def test_run_loop_waits_only_when_idle(tmp_path: Path) -> None:
     worker._stop_event.clear()
     waits.clear()
     clears.clear()
+
+    def unexpected_wait(timeout: float | None = None) -> None:
+        raise AssertionError(f"busy worker waited for {timeout}")
+
+    worker._wake_event = SimpleNamespace(
+        wait=unexpected_wait,
+        clear=lambda: clears.append(True),
+        set=lambda: None,
+    )  # type: ignore[assignment]
 
     def busy_once() -> bool:
         worker._stop_event.set()

@@ -75,7 +75,7 @@ export default function JobDetailPage() {
               </Button>
             </div>
           </div>
-          <GradebookSummary job={job.data} result={result.data.result} />
+          <GradebookSummary job={job.data} result={result.data.result} statistics={result.data.statistics} />
           <GradebookTable students={result.data.result.submissions} />
         </>
       ) : null}

@@ -18,6 +18,7 @@ from opengrader.api_models import (
     JobResponse,
     JobResultResponse,
     JobStatus,
+    ResultStatistics,
     api_key_id,
 )
 from opengrader.repository import JobRepository
@@ -108,11 +109,14 @@ def create_app(
         actor: Actor,
         job_status: Annotated[JobStatus | None, Query(alias="status")] = None,
         limit: Annotated[int, Query(ge=1, le=100)] = 50,
+        offset: Annotated[int, Query(ge=0)] = 0,
     ) -> list[JobResponse]:
         del actor
         return [
             JobResponse.from_record(job)
-            for job in repository.list_jobs(status=job_status, limit=limit)
+            for job in repository.list_jobs(
+                status=job_status, limit=limit, offset=offset
+            )
         ]
 
     @application.get(
@@ -141,6 +145,7 @@ def create_app(
             job_id=job.id,
             result=job.result,
             reports=job.reports,
+            statistics=ResultStatistics.from_result(job.result),
         )
 
     @application.get(

@@ -6,7 +6,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./src/test/setup.ts"]
+    setupFiles: ["./src/test/setup.ts"],
+    exclude: ["node_modules/**", ".next/**", ".features-gen/**", "e2e/**"]
   },
   resolve: {
     alias: { "@": new URL("./src", import.meta.url).pathname }

@@ -42,8 +42,18 @@ function TestCard({ test }: { test: TestExecution }) {
       <div className="grid gap-4 border-t p-4">
         <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
           <Meta label="Duration" value={formatDuration(test.duration_seconds)} />
-          <Meta label="Exit code" value={test.exit_code === null ? "—" : String(test.exit_code)} />
-          <Meta label="Timed out" value={test.timed_out ? "Yes" : "No"} />
+          <BadgeMeta
+            ariaLabel={`Exit code ${test.exit_code === null ? "unavailable" : test.exit_code}`}
+            label="Exit code"
+            tone={test.exit_code === 0 ? "success" : "danger"}
+            value={test.exit_code === null ? "—" : String(test.exit_code)}
+          />
+          <BadgeMeta
+            ariaLabel={test.timed_out ? "Test timed out" : "Test completed before timeout"}
+            label="Timeout"
+            tone={test.timed_out ? "danger" : "success"}
+            value={test.timed_out ? "Timed out" : "On time"}
+          />
           <Meta label="Status" value={test.status} />
         </dl>
         <div className="grid gap-3 xl:grid-cols-2">
@@ -52,6 +62,29 @@ function TestCard({ test }: { test: TestExecution }) {
         </div>
       </div>
     </details>
+  );
+}
+
+function BadgeMeta({ label, value, ariaLabel, tone }: {
+  label: string;
+  value: string;
+  ariaLabel: string;
+  tone: "success" | "danger";
+}) {
+  return (
+    <div className="rounded-lg bg-muted/60 p-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="mt-1">
+        <Badge
+          aria-label={ariaLabel}
+          className={tone === "success"
+            ? "border-success/25 bg-success/10 text-success"
+            : "border-danger/25 bg-danger/10 text-danger"}
+        >
+          {value}
+        </Badge>
+      </dd>
+    </div>
   );
 }
 

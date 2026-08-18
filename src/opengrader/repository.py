@@ -14,6 +14,7 @@ from opengrader.api_models import (
     JobRecord,
     JobStatus,
 )
+from opengrader.mvp4_contract import validate_job_page
 from opengrader.results import GradingResult
 
 
@@ -236,23 +237,25 @@ class JobRepository:
         return None if row is None else _job_from_row(row)
 
     def list_jobs(
-        self, *, status: JobStatus | None = None, limit: int = 50
+        self, *, status: JobStatus | None = None, limit: int = 50, offset: int = 0
     ) -> list[JobRecord]:
-        if not 1 <= limit <= 100:
-            raise ValueError("limit must be between 1 and 100")
+        validate_job_page(limit=limit, offset=offset)
         with self._connect() as connection:
             if status is None:
                 rows = connection.execute(
-                    "SELECT * FROM jobs ORDER BY created_at DESC, id DESC LIMIT ?",
-                    (limit,),
+                    """
+                    SELECT * FROM jobs
+                    ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?
+                    """,
+                    (limit, offset),
                 ).fetchall()
             else:
                 rows = connection.execute(
                     """
                     SELECT * FROM jobs WHERE status = ?
-                    ORDER BY created_at DESC, id DESC LIMIT ?
+                    ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?
                     """,
-                    (status.value, limit),
+                    (status.value, limit, offset),
                 ).fetchall()
         return [_job_from_row(row) for row in rows]
 

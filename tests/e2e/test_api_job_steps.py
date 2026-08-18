@@ -44,8 +44,9 @@ def passing_fixture(api_world, tmp_path: Path):
     submission.mkdir(parents=True)
     (submission / "solution.py").write_text("raise SystemExit(0)\n", encoding="utf-8")
     api_world["request"] = {
-        "assignment_file": str(assignment),
+        "assignment_path": str(assignment),
         "submissions_dir": str(submission.parent),
+        "submission_filter": "student-*",
         "no_docker": True,
     }
 
@@ -102,6 +103,11 @@ def retrieve_result(api_world):
     payload = response.json()
     assert payload["result"]["assignment"] == "HTTP grading"
     assert payload["result"]["submissions"][0]["score"] == 2
+    assert payload["statistics"] == {
+        "total_score": 2,
+        "maximum_points": 2,
+        "student_count": 1,
+    }
     assert set(payload["reports"]) == {"json", "markdown", "csv"}
 
 

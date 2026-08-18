@@ -25,7 +25,14 @@ npm run typecheck
 npm run lint
 npm test
 npm run build
+npm run test:e2e
+npm run test:mutation
 ```
+
+`test:e2e` builds the dashboard and executes its Gherkin scenarios through
+Playwright against an isolated production server on port 3100. `test:mutation`
+runs Stryker against critical API pagination, export, and result-metric logic
+and enforces a minimum mutation score.
 
 The server-side catch-all proxy exists to keep local browser requests same-origin
 without enabling permissive CORS on the grading API. It forwards only the

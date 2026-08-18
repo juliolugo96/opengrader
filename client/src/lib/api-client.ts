@@ -30,11 +30,23 @@ export async function testConnection(settings?: AppSettings): Promise<HealthResp
   return health;
 }
 
-export function listJobs(options: { status?: JobStatus; limit?: number } = {}): Promise<Job[]> {
+export function listJobs(options: { status?: JobStatus; limit?: number; offset?: number } = {}): Promise<Job[]> {
   const search = new URLSearchParams();
   if (options.status) search.set("status", options.status);
   search.set("limit", String(options.limit ?? 100));
+  search.set("offset", String(options.offset ?? 0));
   return apiRequest<Job[]>(`/v1/jobs?${search}`);
+}
+
+export async function listAllJobs(): Promise<Job[]> {
+  const pageSize = 100;
+  const jobs: Job[] = [];
+  let page: Job[];
+  do {
+    page = await listJobs({ limit: pageSize, offset: jobs.length });
+    jobs.push(...page);
+  } while (page.length === pageSize);
+  return jobs;
 }
 
 export function getJob(jobId: string): Promise<Job> {
@@ -54,13 +66,11 @@ export function createJob(input: CreateJobInput): Promise<Job> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      assignment_file: input.assignmentPath,
+      assignment_path: input.assignmentPath,
       submissions_dir: input.submissionsDirectory,
       workers: input.workers,
       retries: input.retries,
-      submission_patterns: input.submissionFilter.trim()
-        ? [input.submissionFilter.trim()]
-        : [],
+      submission_filter: input.submissionFilter.trim(),
       no_docker: input.noDocker
     })
   });

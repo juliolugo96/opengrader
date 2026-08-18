@@ -2,15 +2,20 @@ import { Clock3, Gauge, GraduationCap, Users } from "lucide-react";
 
 import { Card } from "@/components/ui/Card";
 import { formatDuration, gradebookMetrics, jobDuration } from "@/lib/utils";
-import type { GradingResult, Job } from "@/types/grader";
+import type { GradingResult, Job, ResultStatistics } from "@/types/grader";
 
-export function GradebookSummary({ job, result }: { job: Job; result: GradingResult }) {
+export function GradebookSummary({ job, result, statistics }: { job: Job; result: GradingResult; statistics: ResultStatistics }) {
   const metrics = gradebookMetrics(result);
   const items = [
-    { label: "Pass rate", value: `${metrics.passRate}%`, icon: GraduationCap },
-    { label: "Average score", value: `${metrics.averagePercentage}%`, icon: Gauge },
-    { label: "Students graded", value: String(metrics.studentCount), icon: Users },
-    { label: "Execution time", value: formatDuration(jobDuration(job)), icon: Clock3 }
+    { label: "Pass rate", value: `${metrics.passRate}%`, detail: undefined, icon: GraduationCap },
+    {
+      label: "Average score",
+      value: `${metrics.averagePercentage}%`,
+      detail: `${statistics.total_score} / ${statistics.maximum_points} cohort points`,
+      icon: Gauge
+    },
+    { label: "Students graded", value: String(statistics.student_count), detail: undefined, icon: Users },
+    { label: "Execution time", value: formatDuration(jobDuration(job)), detail: undefined, icon: Clock3 }
   ];
 
   return (
@@ -26,6 +31,7 @@ export function GradebookSummary({ job, result }: { job: Job; result: GradingRes
               <div>
                 <p className="text-xs text-muted-foreground">{item.label}</p>
                 <p className="mt-0.5 text-xl font-semibold tracking-tight tabular-nums">{item.value}</p>
+                {item.detail ? <p className="mt-1 text-[0.68rem] text-muted-foreground">{item.detail}</p> : null}
               </div>
             </div>
           </Card>

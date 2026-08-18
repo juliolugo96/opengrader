@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildResultsCsv, formatDuration, gradebookMetrics, percentage } from "@/lib/utils";
-import type { GradingResult } from "@/types/grader";
+import { buildResultsCsv, formatDuration, gradebookMetrics, jobDuration, percentage } from "@/lib/utils";
+import type { GradingResult, Job, TestExecution } from "@/types/grader";
+
+const passingTest = { passed: true } as TestExecution;
+const failingTest = { passed: false } as TestExecution;
 
 const result: GradingResult = {
   assignment: "Intro",
@@ -16,7 +19,7 @@ const result: GradingResult = {
       maximum_score: 10,
       passed: true,
       status: "pass",
-      tests: []
+      tests: [passingTest]
     },
     {
       student_id: "bob, jr",
@@ -24,7 +27,7 @@ const result: GradingResult = {
       maximum_score: 10,
       passed: false,
       status: "partial",
-      tests: []
+      tests: [failingTest]
     }
   ]
 };
@@ -47,12 +50,37 @@ describe("result formatters", () => {
     });
     expect(percentage(1, 3)).toBe(33.3);
     expect(percentage(1, 0)).toBe(0);
+
+    const empty = { ...result, submissions: [] };
+    expect(gradebookMetrics(empty)).toEqual({
+      averagePercentage: 0,
+      passRate: 0,
+      studentCount: 0,
+      totalScore: 0,
+      maximumScore: 0
+    });
+  });
+
+  it("calculates completed and active job durations defensively", () => {
+    const completed = {
+      created_at: "2026-01-01T00:00:00Z",
+      started_at: "2026-01-01T00:00:02Z",
+      completed_at: "2026-01-01T00:00:07Z"
+    } as Job;
+
+    expect(jobDuration(completed)).toBe(5);
+    expect(jobDuration({ ...completed, started_at: null }, Date.parse("2026-01-01T00:00:10Z"))).toBe(7);
+    expect(jobDuration({ ...completed, started_at: "invalid" })).toBeNull();
+    expect(jobDuration({ ...completed, completed_at: "2025-12-31T23:59:00Z" })).toBe(0);
   });
 
   it("exports spreadsheet-safe CSV", () => {
     const csv = buildResultsCsv(result);
-    expect(csv).toContain('"bob, jr",2,10,20,partial,0,0');
-    expect(csv.endsWith("\n")).toBe(true);
+    expect(csv).toBe(
+      "submission,score,maximum_score,percentage,status,tests_passed,tests_total\n" +
+      "alice,8,10,80,pass,1,1\n" +
+      '"bob, jr",2,10,20,partial,0,1\n'
+    );
   });
 
   it("neutralizes spreadsheet formulas in student identifiers", () => {

@@ -3,7 +3,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from opengrader.api_models import ApiJobRequest, ApiSettings, JobStatus, api_key_id
+from opengrader.api_models import (
+    ApiJobRequest,
+    ApiSettings,
+    JobStatus,
+    ResultStatistics,
+    api_key_id,
+)
+from opengrader.results import GradingResult, SubmissionResult, TestResult as GraderTestResult
 
 pytestmark = pytest.mark.unit
 
@@ -39,6 +46,51 @@ def test_job_request_defaults_to_docker_and_single_attempt() -> None:
     assert request.workers == 1
     assert request.retries == 0
     assert request.submission_patterns == []
+
+
+def test_job_request_accepts_mvp4_documented_field_names() -> None:
+    request = ApiJobRequest.model_validate(
+        {
+            "assignment_path": "assignments/hw1.yaml",
+            "submissions_dir": "submissions",
+            "submission_filter": "section-a-*",
+        }
+    )
+
+    assert request.assignment_file == Path("assignments/hw1.yaml")
+    assert request.submission_patterns == ["section-a-*"]
+
+
+def test_result_statistics_round_floating_point_cohort_totals() -> None:
+    submissions = [
+        SubmissionResult(
+            student_id=f"student-{index}",
+            tests=[
+                GraderTestResult(
+                    name="score",
+                    command="true",
+                    passed=True,
+                    points_earned=0.1,
+                    points_possible=0.2,
+                    exit_code=0,
+                    duration_seconds=0.01,
+                )
+            ],
+        )
+        for index in range(3)
+    ]
+    result = GradingResult(
+        assignment="Floating point",
+        generated_at="2026-08-17T12:00:00Z",
+        runner="local",
+        submissions=submissions,
+    )
+
+    assert ResultStatistics.from_result(result).model_dump() == {
+        "total_score": 0.3,
+        "maximum_points": 0.6,
+        "student_count": 3,
+    }
 
 
 @pytest.mark.parametrize(

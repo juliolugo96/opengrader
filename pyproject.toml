@@ -45,8 +45,11 @@ markers = [
 ]
 
 [tool.mutmut]
-source_paths = ["src/opengrader/worker.py"]
-pytest_add_cli_args_test_selection = ["tests/"]
+source_paths = [
+  "src/opengrader/worker.py",
+  "src/opengrader/mvp4_contract.py",
+]
+pytest_add_cli_args_test_selection = ["tests/unit/"]
 also_copy = [
   "pyproject.toml",
   "src/opengrader/__init__.py",
@@ -56,6 +59,7 @@ also_copy = [
   "src/opengrader/config.py",
   "src/opengrader/errors.py",
   "src/opengrader/grader.py",
+  "src/opengrader/mvp4_contract.py",
   "src/opengrader/repository.py",
   "src/opengrader/results.py",
   "src/opengrader/runners.py",
