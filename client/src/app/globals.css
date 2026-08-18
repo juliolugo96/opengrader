@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 42 33% 97%;
+    --foreground: 218 28% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 218 28% 14%;
+    --muted: 40 21% 92%;
+    --muted-foreground: 217 10% 43%;
+    --border: 38 18% 84%;
+    --primary: 160 84% 30%;
+    --primary-foreground: 0 0% 100%;
+    --danger: 2 69% 51%;
+    --success: 156 72% 34%;
+    --warning: 34 90% 48%;
+    color-scheme: light;
+  }
+
+  .dark {
+    --background: 220 24% 7%;
+    --foreground: 42 25% 94%;
+    --card: 220 21% 10%;
+    --card-foreground: 42 25% 94%;
+    --muted: 218 17% 15%;
+    --muted-foreground: 216 12% 64%;
+    --border: 218 16% 19%;
+    --primary: 158 69% 49%;
+    --primary-foreground: 222 36% 8%;
+    --danger: 2 78% 62%;
+    --success: 158 69% 49%;
+    --warning: 39 92% 56%;
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 80% -20%, hsl(var(--primary) / 0.08), transparent 35rem),
+      linear-gradient(hsl(var(--border) / 0.22) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.22) 1px, transparent 1px);
+    background-size: auto, 48px 48px, 48px 48px;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.25);
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border bg-card/95 shadow-panel backdrop-blur-sm;
+  }
+
+  .eyebrow {
+    @apply font-mono text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground;
+  }
+
+  .data-table {
+    @apply w-full border-separate border-spacing-0 text-left text-sm;
+  }
+
+  .data-table th {
+    @apply border-b bg-muted/55 px-4 py-3 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.13em] text-muted-foreground;
+  }
+
+  .data-table td {
+    @apply border-b px-4 py-4 align-middle last:border-b-0;
+  }
+
+  .data-table tbody tr {
+    @apply transition-colors hover:bg-muted/35;
+  }
+
+  .terminal-scrollbar {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+    scrollbar-width: thin;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
