@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 
-import type { BillingOverview, PdfGradeRequest, PdfSubmission } from "../../src/types/grader";
+import type { AcademicAssignment, BillingOverview, PdfGradeRequest, PdfSubmission } from "../../src/types/grader";
 
 const { Given, When, Then } = createBdd();
 
@@ -73,6 +73,7 @@ const resultResponse = {
 
 const draftPdfSubmission: PdfSubmission = {
   id: "pdf-submission-1",
+  assignment_id: null,
   student_id: "alice",
   title: "Final essay",
   original_filename: "essay.pdf",
@@ -90,6 +91,7 @@ const draftPdfSubmission: PdfSubmission = {
 };
 
 let pdfSubmission: PdfSubmission = { ...draftPdfSubmission };
+let academicAssignments: AcademicAssignment[] = [];
 
 const billingOverview: BillingOverview = {
   mode: "hosted",
@@ -107,13 +109,15 @@ Given("saved OpenGrader API credentials", async ({ page }) => {
     window.localStorage.setItem("opengrader.settings.v1", JSON.stringify({
       apiBaseUrl: "http://localhost:8000",
       apiKey: "e2e-key",
-      theme: "light"
+      theme: "light",
+      locale: "en"
     }));
   });
 });
 
 Given("a deterministic grader API", async ({ page }) => {
   pdfSubmission = { ...draftPdfSubmission };
+  academicAssignments = [];
   await page.route("**/api/opengrader/**", async (route) => {
     const requestUrl = new URL(route.request().url());
     const apiPath = requestUrl.pathname.replace("/api/opengrader", "");
@@ -147,6 +151,13 @@ Given("a deterministic grader API", async ({ page }) => {
       payload = pdfSubmission;
     } else if (apiPath === `/v1/pdf-submissions/${draftPdfSubmission.id}`) {
       payload = pdfSubmission;
+    } else if (apiPath === "/v1/assignments" && route.request().method() === "POST") {
+      const input = route.request().postDataJSON() as Omit<AcademicAssignment, "id" | "created_by" | "created_at" | "updated_at">;
+      const created: AcademicAssignment = { ...input, id: "assignment-1", created_by: "key:0123456789ab", created_at: "2026-08-19T12:00:00Z", updated_at: "2026-08-19T12:00:00Z" };
+      academicAssignments.push(created);
+      payload = created;
+    } else if (apiPath === "/v1/assignments") {
+      payload = academicAssignments;
     } else if (apiPath === "/v1/pdf-submissions" && route.request().method() === "POST") {
       payload = pdfSubmission;
     } else if (apiPath === "/v1/pdf-submissions") {
@@ -172,6 +183,39 @@ Given("a deterministic grader API", async ({ page }) => {
 
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
   });
+});
+
+When("I open the assignment workspace", async ({ page }) => {
+  await page.goto("/assignments");
+});
+
+When("I create a written assignment for a course section", async ({ page }) => {
+  await page.getByRole("button", { name: "New assignment" }).first().click();
+  await page.getByRole("radio", { name: "Written or PDF work" }).click();
+  await page.getByLabel("Institution").fill("Riverdale College");
+  await page.getByLabel("Course code").fill("HIST-204");
+  await page.getByLabel("Course name").fill("Modern History");
+  await page.getByLabel("Academic period").fill("Fall 2026");
+  await page.getByLabel("Section").fill("B");
+  await page.getByLabel("Assignment name").fill("Primary source essay");
+  await page.getByRole("button", { name: "Save assignment" }).click();
+});
+
+Then("the assignment is grouped by institution, course, period, and section", async ({ page }) => {
+  await expect(page.getByText("Riverdale College · Fall 2026")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "HIST-204 · Modern History" })).toBeVisible();
+  await expect(page.getByText("Section B")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Primary source essay" })).toBeVisible();
+});
+
+When("I switch the interface to Spanish", async ({ page }) => {
+  await page.goto("/settings");
+  await page.getByLabel("Language").selectOption("es");
+  await page.getByRole("button", { name: "Save settings" }).click();
+});
+
+Then("the professor navigation is shown in Spanish", async ({ page }) => {
+  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByText("Asignaciones")).toBeVisible();
 });
 
 When("I open the jobs dashboard", async ({ page }) => {

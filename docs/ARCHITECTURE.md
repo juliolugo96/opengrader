@@ -19,6 +19,14 @@ authenticated HTTP request ─> SQLite job + audit event ─> background worker
 ```
 
 ```text
+visual professor builder ─> academic assignment catalog ─> SQLite + audit event
+          │                            │
+          │                            ├─ automated ─> server-generated definition ─> durable job
+          │                            └─ written/PDF ─> associated PDF submissions
+          └─ institution + course + period + section
+```
+
+```text
 authenticated PDF upload ─> bounded server storage ─> strict PDF validation
                                       │                         │
                                       └─ SQLite draft <─────────┘
@@ -54,6 +62,11 @@ accepted job/PDF ─> isolated usage outbox ─> Stripe meter-event worker
 - `api.py` defines authenticated FastAPI routes and owns the worker lifespan.
 - `api_models.py` defines the strict HTTP contract, state, and environment
   settings.
+- `academic.py` defines academic context, assignment kinds, visual evaluation
+  settings, and launch contracts.
+- `academic_repository.py` persists the assignment catalog and its audit events.
+- `academic_service.py` coordinates catalog operations and materializes
+  validated engine definitions only when automated grading launches.
 - `repository.py` owns durable SQLite transitions and append-only audit events.
 - `worker.py` claims queued jobs and invokes the same grading pipeline used by
   the CLI, outside request handlers.

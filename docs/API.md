@@ -10,6 +10,7 @@ visible to the host; it does not upload assignment or submission archives.
 | `OPENGRADER_API_KEYS` | none | Comma-separated bearer keys; at least one is required for `/v1` |
 | `OPENGRADER_DATABASE` | `.opengrader/jobs.db` | SQLite job and audit database |
 | `OPENGRADER_OUTPUT_ROOT` | `.opengrader/reports` | Per-job report root |
+| `OPENGRADER_ASSIGNMENT_STORAGE_ROOT` | `.opengrader/assignments` | Server-generated automated assignment definitions |
 | `OPENGRADER_POLL_INTERVAL` | `0.25` | Idle worker poll interval in seconds |
 | `OPENGRADER_PDF_STORAGE_ROOT` | `.opengrader/pdfs` | Generated-ID PDF storage root |
 | `OPENGRADER_PDF_MAX_UPLOAD_BYTES` | `10485760` | Maximum uploaded PDF bytes |
@@ -68,12 +69,18 @@ error in the job representation. Reports are stored under
 | --- | --- | --- | --- |
 | `GET` | `/health` | `200` | Public liveness/configuration check |
 | `POST` | `/v1/jobs` | `202` | Enqueue a strict job request |
+| `POST` | `/v1/assignments` | `201` | Save an automated or written/PDF academic assignment |
+| `GET` | `/v1/assignments?institution=&course_code=&period=&section=&kind=` | `200` | Filter the professor assignment catalog |
+| `GET` | `/v1/assignments/{id}` | `200` | Retrieve one saved assignment |
+| `PUT` | `/v1/assignments/{id}` | `200` | Replace its academic context and evaluation definition |
+| `DELETE` | `/v1/assignments/{id}` | `204` | Remove it from the catalog without deleting history |
+| `POST` | `/v1/assignments/{id}/jobs` | `202` | Generate an internal definition and enqueue automated grading |
 | `GET` | `/v1/jobs?status=&limit=&offset=` | `200` | Newest first; limit 1–100 |
 | `GET` | `/v1/jobs/{id}` | `200` | State, request, reports, and error |
 | `GET` | `/v1/jobs/{id}/result` | `200` | Available only after success |
 | `GET` | `/v1/audit-events?limit=` | `200` | Chronological events; limit 1–500 |
-| `POST` | `/v1/pdf-submissions` | `201` | Multipart `file`, `student_id`, and `title` |
-| `GET` | `/v1/pdf-submissions?limit=&offset=` | `200` | Newest validated documents first |
+| `POST` | `/v1/pdf-submissions` | `201` | Multipart `file`, `student_id`, `title`, and optional `assignment_id` |
+| `GET` | `/v1/pdf-submissions?assignment_id=&limit=&offset=` | `200` | Newest validated documents first; optionally assignment-scoped |
 | `GET` | `/v1/pdf-submissions/{id}` | `200` | Rubric, grade, annotations, and totals |
 | `GET` | `/v1/pdf-submissions/{id}/document` | `200` | Original PDF, inline disposition |
 | `PUT` | `/v1/pdf-submissions/{id}/grade` | `200` | Save draft or immutable final grade |

@@ -9,6 +9,11 @@ feedback-preserving exports. Hosted deployments can optionally enforce Stripe
 subscriptions and meter accepted grading operations while local grading stays
 free.
 
+The professor-facing dashboard organizes work by institution, course, academic
+period, and section. Its guided builder supports automated checks and written or
+PDF work without exposing engine configuration files. The interface supports
+English, Spanish, and Simplified Chinese. See [Professor Workspaces](docs/PROFESSOR_WORKSPACES.md).
+
 ## Requirements
 
 - Python 3.12 or newer
@@ -97,6 +102,18 @@ PDFs containing an embedded structured feedback record. The default upload
 limits are 10 MiB and 200 pages; see the [API operations guide](docs/API.md) and
 [MVP 5 design](docs/MVP5_DESIGN.md).
 
+## Professor assignment workspace
+
+Open **Assignments** to create, edit, filter, and launch course work. Choose
+automated evaluation or written/PDF grading, enter the institution, course,
+period, and section, then use the guided fields. Programming templates cover
+Python, JavaScript, and C; advanced resource controls remain available when
+needed. Written assignments appear in the PDF upload selector so submissions
+stay attached to the correct course context.
+
+Choose English, Español, or 简体中文 in **Settings**. The preference stays in the
+current browser and updates the document language for assistive technology.
+
 ## Hosted billing
 
 Billing is disabled by default. In hosted mode, the **Billing & usage** dashboard
@@ -108,6 +125,11 @@ proof of payment. See the [MVP 6 design](docs/MVP6_DESIGN.md) and
 environment configuration.
 
 ## Assignment format
+
+The format ranges from a two-field minimal definition to pinned custom images,
+resource limits, setup commands, per-test timeouts, weighted points, and
+exit-code partial credit. See the complete [assignment YAML reference](docs/ASSIGNMENT_FORMAT.md)
+and the [multi-language assignment gallery](examples/assignments/README.md).
 
 ```yaml
 name: Intro to Python
@@ -157,5 +179,6 @@ mutmut run
 ```
 
 See the [MVP 6 design](docs/MVP6_DESIGN.md), [TDAID record](docs/TDAID_MVP6.md),
+[professor workspace guide](docs/PROFESSOR_WORKSPACES.md),
 [architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and
 [roadmap](docs/ROADMAP.md) for scope and design details.

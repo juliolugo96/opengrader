@@ -79,6 +79,7 @@ class PdfSubmissionRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str
+    assignment_id: str | None = None
     student_id: str
     title: str
     original_filename: str

@@ -1,0 +1,31 @@
+# Expected submission file: query.sql selecting customer totals.
+name: SQL aggregation query
+image: python:3.12-slim
+timeout_seconds: 5
+memory_mb: 128
+cpus: 1
+pids_limit: 32
+tests:
+  - name: Query is valid SQLite
+    command: >-
+      python -c 'import sqlite3, pathlib;
+      db = sqlite3.connect(":memory:");
+      db.execute("create table orders(customer text, amount integer)");
+      db.execute(pathlib.Path("query.sql").read_text())'
+    points: 2
+  - name: Aggregates and orders customer totals
+    command: >-
+      python -c 'import sqlite3, pathlib;
+      db = sqlite3.connect(":memory:");
+      db.executescript("create table orders(customer text, amount integer); insert into orders values (\"Ada\", 7), (\"Linus\", 4), (\"Ada\", 5);");
+      rows = db.execute(pathlib.Path("query.sql").read_text()).fetchall();
+      assert rows == [("Ada", 12), ("Linus", 4)], rows'
+    points: 5
+  - name: Preserves customers with zero totals
+    command: >-
+      python -c 'import sqlite3, pathlib;
+      db = sqlite3.connect(":memory:");
+      db.executescript("create table orders(customer text, amount integer); insert into orders values (\"Grace\", 0);");
+      rows = db.execute(pathlib.Path("query.sql").read_text()).fetchall();
+      assert rows == [("Grace", 0)], rows'
+    points: 3

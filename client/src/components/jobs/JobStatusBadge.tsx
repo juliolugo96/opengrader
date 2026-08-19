@@ -1,4 +1,7 @@
+"use client";
+
 import { Badge } from "@/components/ui/Badge";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { JobStatus } from "@/types/grader";
 
@@ -10,6 +13,7 @@ const styles: Record<JobStatus, string> = {
 };
 
 export function JobStatusBadge({ status, className }: { status: JobStatus; className?: string }) {
+  const { t } = useI18n();
   const active = status === "queued" || status === "running";
   return (
     <Badge className={cn("relative", styles[status], className)}>
@@ -17,7 +21,7 @@ export function JobStatusBadge({ status, className }: { status: JobStatus; class
         {active ? <span className="absolute inset-0 animate-pulse-ring rounded-full bg-current" /> : null}
         <span className="relative size-1.5 rounded-full bg-current" />
       </span>
-      {status}
+      {t(`jobs.${status}`)}
     </Badge>
   );
 }

@@ -1,0 +1,27 @@
+# Illustrative advanced setup. Replace the image with one containing your private
+# `course-grader` executable and hidden rubric assets.
+name: Custom hidden-test rubric
+image: ghcr.io/your-organization/course-grader:2026.1
+timeout_seconds: 30
+memory_mb: 512
+cpus: 2
+pids_limit: 128
+tests:
+  - name: Correctness rubric
+    command: course-grader evaluate --submission . --rubric correctness
+    points: 7
+    partial_credit:
+      2: 0.75
+      3: 0.5
+      4: 0.25
+  - name: Performance budget
+    command: course-grader evaluate --submission . --rubric performance
+    points: 2
+    timeout_seconds: 5
+    partial_credit:
+      2: 0.5
+  - name: Code quality policy
+    command: course-grader evaluate --submission . --rubric quality
+    points: 1
+    partial_credit:
+      2: 0.5

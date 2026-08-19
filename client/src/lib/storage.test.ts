@@ -16,10 +16,11 @@ describe("settings storage", () => {
     const saved = saveSettings({
       apiBaseUrl: " http://localhost:8000/// ",
       apiKey: " test-key ",
-      theme: "dark"
+      theme: "dark",
+      locale: "es"
     });
 
-    expect(saved).toEqual({ apiBaseUrl: "http://localhost:8000", apiKey: "test-key", theme: "dark" });
+    expect(saved).toEqual({ apiBaseUrl: "http://localhost:8000", apiKey: "test-key", theme: "dark", locale: "es" });
     expect(getSettings()).toEqual(saved);
     expect(listener).toHaveBeenCalledOnce();
     window.removeEventListener(SETTINGS_CHANGED_EVENT, listener);

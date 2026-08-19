@@ -7,6 +7,7 @@ import type { PdfSubmission } from "@/types/grader";
 
 const submission: PdfSubmission = {
   id: "pdf-1",
+  assignment_id: null,
   student_id: "alice",
   title: "Final essay",
   original_filename: "essay.pdf",

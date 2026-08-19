@@ -5,7 +5,8 @@ const config = {
     "src/lib/api-client.ts:70-99",
     "src/lib/api-client.ts:101-150",
     "src/lib/api-client.ts:152-200",
-    "src/components/billing/BillingPanel.tsx:62-69",
+    "src/lib/i18n.tsx:133-139",
+    "src/components/billing/BillingPanel.tsx:50-59",
     "src/lib/utils.ts:30-38",
     "src/lib/utils.ts:48-68",
     "src/lib/utils.ts:78-92"

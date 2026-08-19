@@ -1,9 +1,13 @@
+"use client";
+
 import { CheckCircle2, CircleDashed, ClipboardList, XCircle } from "lucide-react";
 
 import { Card } from "@/components/ui/Card";
+import { useI18n } from "@/lib/i18n";
 import type { Job } from "@/types/grader";
 
 export function JobStatsCards({ jobs }: { jobs: Job[] }) {
+  const { t } = useI18n();
   const counts = jobs.reduce(
     (totals, job) => {
       totals.total += 1;
@@ -15,10 +19,10 @@ export function JobStatsCards({ jobs }: { jobs: Job[] }) {
     { total: 0, active: 0, succeeded: 0, failed: 0 }
   );
   const items = [
-    { label: "Total jobs", value: counts.total, icon: ClipboardList, color: "text-foreground", detail: "Last 100 grading runs" },
-    { label: "In progress", value: counts.active, icon: CircleDashed, color: "text-sky-600 dark:text-sky-400", detail: "Queued and running" },
-    { label: "Succeeded", value: counts.succeeded, icon: CheckCircle2, color: "text-success", detail: "Reports ready" },
-    { label: "Failed", value: counts.failed, icon: XCircle, color: "text-danger", detail: "Needs attention" }
+    { label: t("jobs.total"), value: counts.total, icon: ClipboardList, color: "text-foreground", detail: t("jobs.totalDetail") },
+    { label: t("jobs.progress"), value: counts.active, icon: CircleDashed, color: "text-sky-600 dark:text-sky-400", detail: t("jobs.progressDetail") },
+    { label: t("jobs.succeeded"), value: counts.succeeded, icon: CheckCircle2, color: "text-success", detail: t("jobs.succeededDetail") },
+    { label: t("jobs.failed"), value: counts.failed, icon: XCircle, color: "text-danger", detail: t("jobs.failedDetail") }
   ];
 
   return (

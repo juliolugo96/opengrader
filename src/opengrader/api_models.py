@@ -129,6 +129,7 @@ class ApiSettings:
     database_path: Path = Path(".opengrader/jobs.db")
     output_root: Path = Path(".opengrader/reports")
     pdf_storage_root: Path = Path(".opengrader/pdfs")
+    assignment_storage_root: Path = Path(".opengrader/assignments")
     pdf_max_upload_bytes: int = 10 * 1024 * 1024
     pdf_max_pages: int = 200
     billing_enabled: bool = False
@@ -179,6 +180,11 @@ class ApiSettings:
             ),
             pdf_storage_root=Path(
                 os.getenv("OPENGRADER_PDF_STORAGE_ROOT", ".opengrader/pdfs")
+            ),
+            assignment_storage_root=Path(
+                os.getenv(
+                    "OPENGRADER_ASSIGNMENT_STORAGE_ROOT", ".opengrader/assignments"
+                )
             ),
             pdf_max_upload_bytes=int(
                 os.getenv("OPENGRADER_PDF_MAX_UPLOAD_BYTES", str(10 * 1024 * 1024))

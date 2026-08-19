@@ -5,6 +5,13 @@ Feature: OpenGrader operations dashboard
     Given saved OpenGrader API credentials
     And a deterministic grader API
 
+  Scenario: Create and organize written work for an academic section
+    When I open the assignment workspace
+    And I create a written assignment for a course section
+    Then the assignment is grouped by institution, course, period, and section
+    When I switch the interface to Spanish
+    Then the professor navigation is shown in Spanish
+
   Scenario: Review and paginate the complete jobs history
     When I open the jobs dashboard
     Then the dashboard reports 11 total jobs

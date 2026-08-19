@@ -37,6 +37,7 @@ class PdfSubmissionRepository:
                 );
                 CREATE TABLE IF NOT EXISTS pdf_submissions (
                     id TEXT PRIMARY KEY,
+                    assignment_id TEXT,
                     student_id TEXT NOT NULL,
                     title TEXT NOT NULL,
                     original_filename TEXT NOT NULL,
@@ -54,6 +55,22 @@ class PdfSubmissionRepository:
                     ON pdf_submissions(created_at, id);
                 """
             )
+            columns = {
+                str(row["name"])
+                for row in connection.execute(
+                    "PRAGMA table_info(pdf_submissions)"
+                ).fetchall()
+            }
+            if "assignment_id" not in columns:
+                connection.execute(
+                    "ALTER TABLE pdf_submissions ADD COLUMN assignment_id TEXT"
+                )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS pdf_submissions_assignment_idx
+                    ON pdf_submissions(assignment_id, created_at, id)
+                """
+            )
 
     def create_submission(
         self,
@@ -66,6 +83,7 @@ class PdfSubmissionRepository:
         sha256: str,
         page_count: int,
         actor: str,
+        assignment_id: str | None = None,
     ) -> PdfSubmissionRecord:
         if page_count < 1:
             raise ValueError("page_count must be positive")
@@ -76,12 +94,14 @@ class PdfSubmissionRepository:
             connection.execute(
                 """
                 INSERT INTO pdf_submissions (
-                    id, student_id, title, original_filename, size_bytes, sha256,
-                    page_count, status, created_by, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    id, assignment_id, student_id, title, original_filename,
+                    size_bytes, sha256, page_count, status, created_by,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     submission_id,
+                    assignment_id,
                     student_id,
                     title,
                     original_filename,
@@ -115,17 +135,30 @@ class PdfSubmissionRepository:
         return None if row is None else _record_from_row(row)
 
     def list_submissions(
-        self, *, limit: int = 50, offset: int = 0
+        self,
+        *,
+        assignment_id: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[PdfSubmissionRecord]:
         validate_job_page(limit=limit, offset=offset)
         with self._connect() as connection:
-            rows = connection.execute(
-                """
-                SELECT * FROM pdf_submissions
-                ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?
-                """,
-                (limit, offset),
-            ).fetchall()
+            if assignment_id is None:
+                rows = connection.execute(
+                    """
+                    SELECT * FROM pdf_submissions
+                    ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?
+                    """,
+                    (limit, offset),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    """
+                    SELECT * FROM pdf_submissions WHERE assignment_id = ?
+                    ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?
+                    """,
+                    (assignment_id, limit, offset),
+                ).fetchall()
         return [_record_from_row(row) for row in rows]
 
     def save_grade(
@@ -241,6 +274,7 @@ class PdfSubmissionRepository:
 def _record_from_row(row: sqlite3.Row) -> PdfSubmissionRecord:
     return PdfSubmissionRecord(
         id=row["id"],
+        assignment_id=row["assignment_id"],
         student_id=row["student_id"],
         title=row["title"],
         original_filename=row["original_filename"],

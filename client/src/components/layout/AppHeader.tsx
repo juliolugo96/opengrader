@@ -9,19 +9,14 @@ import { Button } from "@/components/ui/Button";
 import { testConnection } from "@/lib/api-client";
 import { getSettings, saveSettings } from "@/lib/storage";
 import { useSettings } from "@/lib/use-settings";
-
-const pageNames: Record<string, string> = {
-  jobs: "Grading jobs",
-  pdf: "PDF grading",
-  audit: "Audit trail",
-  billing: "Billing & usage",
-  settings: "Connection settings"
-};
+import { useI18n } from "@/lib/i18n";
 
 export function AppHeader() {
   const pathname = usePathname();
   const settings = useSettings();
-  const section = pathname.split("/").filter(Boolean)[0] ?? "jobs";
+  const { t } = useI18n();
+  const section = pathname.split("/").filter(Boolean)[0] ?? "assignments";
+  const pageNames = { assignments: t("nav.assignments"), jobs: t("nav.jobs"), pdf: t("nav.pdf"), audit: t("nav.audit"), billing: t("nav.billing"), settings: t("nav.settings") } as Record<string, string>;
   const connection = useQuery({
     queryKey: ["connection", settings.apiBaseUrl, Boolean(settings.apiKey)],
     queryFn: () => testConnection(),
@@ -41,8 +36,8 @@ export function AppHeader() {
           <BrandMark />
         </span>
         <div>
-          <p className="eyebrow hidden sm:block">Workspace</p>
-          <p className="text-sm font-semibold">{pageNames[section] ?? "Job detail"}</p>
+          <p className="eyebrow hidden sm:block">{t("nav.workspace")}</p>
+          <p className="text-sm font-semibold">{pageNames[section] ?? t("nav.detail")}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -51,10 +46,10 @@ export function AppHeader() {
             className={`size-2 rounded-full ${connection.isSuccess ? "bg-success" : connection.isError ? "bg-danger" : "bg-muted-foreground/50"}`}
           />
           <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-muted-foreground">
-            {!settings.apiKey ? "Not configured" : connection.isSuccess ? "API online" : connection.isPending ? "Checking" : "API unavailable"}
+            {!settings.apiKey ? t("nav.notConfigured") : connection.isSuccess ? t("nav.online") : connection.isPending ? t("nav.checking") : t("nav.unavailable")}
           </span>
         </div>
-        <Button aria-label="Toggle color mode" onClick={toggleTheme} size="icon" variant="ghost">
+        <Button aria-label={t("nav.toggleTheme")} onClick={toggleTheme} size="icon" variant="ghost">
           <Moon aria-hidden="true" className="size-4 dark:hidden" />
           <Sun aria-hidden="true" className="hidden size-4 dark:block" />
         </Button>

@@ -1,0 +1,21 @@
+# Expected submission file: Main.java accepting integer arguments.
+name: Java statistics program
+image: eclipse-temurin:21-jdk
+setup: javac -Xlint:all -Werror Main.java
+timeout_seconds: 12
+memory_mb: 256
+cpus: 1
+pids_limit: 96
+tests:
+  - name: Compiles without warnings
+    command: test -f Main.class
+    points: 2
+  - name: Computes an average
+    command: test "$(java Main average 2 4 6 8)" = "5.0"
+    points: 3
+  - name: Computes a minimum
+    command: test "$(java Main min 9 -4 11 0)" = "-4"
+    points: 3
+  - name: Empty input is rejected
+    command: '! java Main average >/dev/null 2>&1'
+    points: 2

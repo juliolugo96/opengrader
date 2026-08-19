@@ -44,6 +44,14 @@ Deferred from MVP 2: progress callbacks and plagiarism-export hooks.
 - Idempotent, ordered subscription projections
 - Durable grading-unit metering with retry-safe Stripe delivery
 
+## Professor workspaces and localization (complete)
+
+- Visual assignment authoring with no configuration-file knowledge required
+- Institution, course, academic-period, and section organization
+- Automated-check templates plus written/PDF assignment workflows
+- Saved-assignment launch and PDF-submission association
+- English, Spanish, and Simplified Chinese dashboard support
+
 ## MVP 7 — LMS integrations
 
 - Canvas assignment and grade synchronization

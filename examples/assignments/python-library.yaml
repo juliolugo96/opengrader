@@ -1,0 +1,22 @@
+# Expected submission file: solution.py exporting factorial and is_prime.
+name: Python functions and edge cases
+image: python:3.12-slim
+setup: python -m compileall -q .
+timeout_seconds: 8
+memory_mb: 128
+cpus: 1
+pids_limit: 64
+tests:
+  - name: Module imports
+    command: python -c "import solution"
+    points: 1
+  - name: Factorial handles base cases
+    command: python -c "from solution import factorial; assert factorial(0) == 1 and factorial(1) == 1"
+    points: 3
+  - name: Factorial handles a typical value
+    command: python -c "from solution import factorial; assert factorial(6) == 720"
+    points: 3
+  - name: Prime detection handles edges
+    command: python -c "from solution import is_prime; assert not is_prime(1) and is_prime(2) and not is_prime(9)"
+    points: 3
+    timeout_seconds: 2

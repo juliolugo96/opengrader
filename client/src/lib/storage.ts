@@ -2,6 +2,7 @@ export interface AppSettings {
   apiBaseUrl: string;
   apiKey: string;
   theme: "light" | "dark" | "system";
+  locale: "en" | "es" | "zh-CN";
 }
 
 const STORAGE_KEY = "opengrader.settings.v1";
@@ -10,7 +11,8 @@ export const SETTINGS_CHANGED_EVENT = "opengrader:settings-changed";
 export const defaultSettings: AppSettings = {
   apiBaseUrl: "http://localhost:8000",
   apiKey: "",
-  theme: "system"
+  theme: "system",
+  locale: "en"
 };
 
 export function getSettings(): AppSettings {
@@ -23,7 +25,8 @@ export function getSettings(): AppSettings {
     return {
       apiBaseUrl: normalizeBaseUrl(parsed.apiBaseUrl ?? defaultSettings.apiBaseUrl),
       apiKey: typeof parsed.apiKey === "string" ? parsed.apiKey : "",
-      theme: isTheme(parsed.theme) ? parsed.theme : "system"
+      theme: isTheme(parsed.theme) ? parsed.theme : "system",
+      locale: isLocale(parsed.locale) ? parsed.locale : "en"
     };
   } catch {
     return defaultSettings;
@@ -57,4 +60,8 @@ export function normalizeBaseUrl(value: string): string {
 
 function isTheme(value: unknown): value is AppSettings["theme"] {
   return value === "light" || value === "dark" || value === "system";
+}
+
+function isLocale(value: unknown): value is AppSettings["locale"] {
+  return value === "en" || value === "es" || value === "zh-CN";
 }

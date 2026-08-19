@@ -134,6 +134,7 @@ export interface PdfGradeRequest {
 
 export interface PdfSubmission {
   id: string;
+  assignment_id: string | null;
   student_id: string;
   title: string;
   original_filename: string;
@@ -154,6 +155,58 @@ export interface PdfUploadInput {
   file: File;
   studentId: string;
   title: string;
+  assignmentId?: string;
+}
+
+export type AppLocale = "en" | "es" | "zh-CN";
+export type AcademicAssignmentKind = "automated" | "pdf";
+
+export interface AcademicContext {
+  institution: string;
+  course_code: string;
+  course_name: string;
+  period: string;
+  section: string;
+}
+
+export interface AssignmentCheck {
+  name: string;
+  command: string;
+  points: number;
+  timeout_seconds?: number | null;
+  partial_credit?: Record<number, number>;
+}
+
+export interface AutomatedAssignmentDefinition {
+  image: string;
+  setup: string | null;
+  timeout_seconds: number;
+  memory_mb: number;
+  cpus: number;
+  pids_limit: number;
+  tests: AssignmentCheck[];
+}
+
+export interface AcademicAssignmentInput {
+  name: string;
+  kind: AcademicAssignmentKind;
+  context: AcademicContext;
+  automated: AutomatedAssignmentDefinition | null;
+}
+
+export interface AcademicAssignment extends AcademicAssignmentInput {
+  id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssignmentLaunchInput {
+  submissionsDirectory: string;
+  workers: number;
+  retries: number;
+  submissionPatterns: string[];
+  noDocker: boolean;
 }
 
 export type SubscriptionStatus =

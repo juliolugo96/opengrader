@@ -1,0 +1,21 @@
+# Expected submission file: solution.sh reading newline-delimited integers.
+name: POSIX shell data filter
+image: alpine:3.20
+setup: chmod +x solution.sh && sh -n solution.sh
+timeout_seconds: 5
+memory_mb: 64
+cpus: 0.5
+pids_limit: 32
+tests:
+  - name: Uses a POSIX shell shebang
+    command: head -n 1 solution.sh | grep -Eq '^#! */(usr/)?bin/(env +)?sh'
+    points: 1
+  - name: Filters even numbers
+    command: test "$(printf '1\n2\n3\n4\n' | ./solution.sh)" = "$(printf '2\n4\n')"
+    points: 4
+  - name: Handles negative and zero values
+    command: test "$(printf '%s\n' '-2' '-1' '0' | ./solution.sh)" = "$(printf '%s\n' '-2' '0')"
+    points: 3
+  - name: Empty input produces empty output
+    command: test -z "$(./solution.sh </dev/null)"
+    points: 2

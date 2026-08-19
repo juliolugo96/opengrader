@@ -1,5 +1,8 @@
 import { getSettings, type AppSettings } from "@/lib/storage";
 import type {
+  AcademicAssignment,
+  AcademicAssignmentInput,
+  AssignmentLaunchInput,
   AuditEvent,
   BillingOverview,
   BillingSessionResponse,
@@ -82,6 +85,54 @@ export function createJob(input: CreateJobInput): Promise<Job> {
   });
 }
 
+export function listAssignments(options: {
+  institution?: string;
+  courseCode?: string;
+  period?: string;
+  section?: string;
+} = {}): Promise<AcademicAssignment[]> {
+  const search = new URLSearchParams({ limit: "100", offset: "0" });
+  if (options.institution) search.set("institution", options.institution);
+  if (options.courseCode) search.set("course_code", options.courseCode);
+  if (options.period) search.set("period", options.period);
+  if (options.section) search.set("section", options.section);
+  return apiRequest<AcademicAssignment[]>(`/v1/assignments?${search}`);
+}
+
+export function createAssignment(input: AcademicAssignmentInput): Promise<AcademicAssignment> {
+  return apiRequest<AcademicAssignment>("/v1/assignments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+}
+
+export function updateAssignment(assignmentId: string, input: AcademicAssignmentInput): Promise<AcademicAssignment> {
+  return apiRequest<AcademicAssignment>(`/v1/assignments/${encodeURIComponent(assignmentId)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+}
+
+export function deleteAssignment(assignmentId: string): Promise<void> {
+  return apiRequest<void>(`/v1/assignments/${encodeURIComponent(assignmentId)}`, { method: "DELETE" });
+}
+
+export function launchAssignment(assignmentId: string, input: AssignmentLaunchInput): Promise<Job> {
+  return apiRequest<Job>(`/v1/assignments/${encodeURIComponent(assignmentId)}/jobs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      submissions_dir: input.submissionsDirectory.trim(),
+      workers: input.workers,
+      retries: input.retries,
+      submission_patterns: input.submissionPatterns,
+      no_docker: input.noDocker
+    })
+  });
+}
+
 export function getBillingOverview(): Promise<BillingOverview> {
   return apiRequest<BillingOverview>("/v1/billing/overview");
 }
@@ -98,11 +149,12 @@ export function createBillingPortal(): Promise<BillingSessionResponse> {
   return apiRequest<BillingSessionResponse>("/v1/billing/portal", { method: "POST" });
 }
 
-export function listPdfSubmissions(options: { limit?: number; offset?: number } = {}): Promise<PdfSubmission[]> {
+export function listPdfSubmissions(options: { assignmentId?: string; limit?: number; offset?: number } = {}): Promise<PdfSubmission[]> {
   const search = new URLSearchParams({
     limit: String(options.limit ?? 100),
     offset: String(options.offset ?? 0)
   });
+  if (options.assignmentId) search.set("assignment_id", options.assignmentId);
   return apiRequest<PdfSubmission[]>(`/v1/pdf-submissions?${search}`);
 }
 
@@ -125,6 +177,7 @@ export function uploadPdfSubmission(input: PdfUploadInput): Promise<PdfSubmissio
   const body = new FormData();
   body.set("student_id", input.studentId.trim());
   body.set("title", input.title.trim());
+  if (input.assignmentId) body.set("assignment_id", input.assignmentId);
   body.set("file", input.file);
   return apiRequest<PdfSubmission>("/v1/pdf-submissions", { method: "POST", body });
 }

@@ -23,6 +23,14 @@ from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from opengrader import __version__
+from opengrader.academic import (
+    AcademicAssignmentCreate,
+    AcademicAssignmentLaunch,
+    AcademicAssignmentRecord,
+    AssignmentKind,
+)
+from opengrader.academic_repository import AcademicAssignmentRepository
+from opengrader.academic_service import AcademicAssignmentService
 from opengrader.billing import (
     BillingCheckoutRequest,
     BillingOverview,
@@ -66,6 +74,10 @@ def create_app(
 
     active_settings = settings or ApiSettings.from_env()
     repository = JobRepository(active_settings.database_path)
+    academic_repository = AcademicAssignmentRepository(active_settings.database_path)
+    academic_service = AcademicAssignmentService(
+        academic_repository, storage_root=active_settings.assignment_storage_root
+    )
     pdf_repository = PdfSubmissionRepository(active_settings.database_path)
     billing_repository = BillingRepository(active_settings.database_path)
     active_billing_gateway = billing_gateway
@@ -101,6 +113,7 @@ def create_app(
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         del application
         repository.initialize()
+        academic_repository.initialize()
         pdf_repository.initialize()
         billing_repository.initialize()
         worker.start()
@@ -118,6 +131,8 @@ def create_app(
     )
     application.state.settings = active_settings
     application.state.repository = repository
+    application.state.academic_repository = academic_repository
+    application.state.academic_service = academic_service
     application.state.pdf_repository = pdf_repository
     application.state.pdf_service = pdf_service
     application.state.billing_repository = billing_repository
@@ -167,6 +182,101 @@ def create_app(
     def create_job(request: ApiJobRequest, actor: Actor) -> JobResponse:
         _require_billing_entitlement(billing_service, actor)
         job = repository.create_job(request, actor=actor)
+        billing_service.record_usage(actor, resource_type="job", resource_id=job.id)
+        billing_usage_worker.notify()
+        worker.notify()
+        return JobResponse.from_record(job)
+
+    @application.post(
+        "/v1/assignments",
+        response_model=AcademicAssignmentRecord,
+        status_code=status.HTTP_201_CREATED,
+        tags=["assignments"],
+    )
+    def create_academic_assignment(
+        request: AcademicAssignmentCreate, actor: Actor
+    ) -> AcademicAssignmentRecord:
+        return academic_service.create(request, actor=actor)
+
+    @application.get(
+        "/v1/assignments",
+        response_model=list[AcademicAssignmentRecord],
+        tags=["assignments"],
+    )
+    def list_academic_assignments(
+        actor: Actor,
+        institution: Annotated[str | None, Query(max_length=160)] = None,
+        course_code: Annotated[str | None, Query(max_length=40)] = None,
+        period: Annotated[str | None, Query(max_length=80)] = None,
+        section: Annotated[str | None, Query(max_length=80)] = None,
+        kind: AssignmentKind | None = None,
+        limit: Annotated[int, Query(ge=1, le=100)] = 100,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ) -> list[AcademicAssignmentRecord]:
+        del actor
+        return academic_repository.list(
+            institution=institution,
+            course_code=course_code,
+            period=period,
+            section=section,
+            kind=kind,
+            limit=limit,
+            offset=offset,
+        )
+
+    @application.get(
+        "/v1/assignments/{assignment_id}",
+        response_model=AcademicAssignmentRecord,
+        tags=["assignments"],
+    )
+    def get_academic_assignment(
+        assignment_id: str, actor: Actor
+    ) -> AcademicAssignmentRecord:
+        del actor
+        record = academic_repository.get(assignment_id)
+        if record is None:
+            raise HTTPException(status_code=404, detail="Assignment not found")
+        return record
+
+    @application.put(
+        "/v1/assignments/{assignment_id}",
+        response_model=AcademicAssignmentRecord,
+        tags=["assignments"],
+    )
+    def update_academic_assignment(
+        assignment_id: str, request: AcademicAssignmentCreate, actor: Actor
+    ) -> AcademicAssignmentRecord:
+        try:
+            return academic_service.update(assignment_id, request, actor=actor)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Assignment not found") from exc
+
+    @application.delete(
+        "/v1/assignments/{assignment_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+        tags=["assignments"],
+    )
+    def delete_academic_assignment(assignment_id: str, actor: Actor) -> None:
+        if not academic_service.delete(assignment_id, actor=actor):
+            raise HTTPException(status_code=404, detail="Assignment not found")
+
+    @application.post(
+        "/v1/assignments/{assignment_id}/jobs",
+        response_model=JobResponse,
+        status_code=status.HTTP_202_ACCEPTED,
+        tags=["assignments", "jobs"],
+    )
+    def launch_academic_assignment(
+        assignment_id: str, request: AcademicAssignmentLaunch, actor: Actor
+    ) -> JobResponse:
+        _require_billing_entitlement(billing_service, actor)
+        try:
+            job_request = academic_service.job_request(assignment_id, request)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Assignment not found") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        job = repository.create_job(job_request, actor=actor)
         billing_service.record_usage(actor, resource_type="job", resource_id=job.id)
         billing_usage_worker.notify()
         worker.notify()
@@ -227,11 +337,25 @@ def create_app(
         student_id: Annotated[str, Form(min_length=1, max_length=120)],
         title: Annotated[str, Form(min_length=1, max_length=200)],
         file: Annotated[UploadFile, File()],
+        assignment_id: Annotated[str | None, Form(max_length=80)] = None,
     ) -> PdfSubmissionRecord:
         _require_billing_entitlement(billing_service, actor)
+        if assignment_id is not None:
+            assignment = academic_repository.get(assignment_id)
+            if assignment is None:
+                raise HTTPException(status_code=404, detail="Assignment not found")
+            if assignment.kind is not AssignmentKind.PDF:
+                raise HTTPException(
+                    status_code=409,
+                    detail="PDF submissions require a PDF assignment",
+                )
         try:
             submission = await pdf_service.ingest(
-                file, student_id=student_id, title=title, actor=actor
+                file,
+                student_id=student_id,
+                title=title,
+                actor=actor,
+                assignment_id=assignment_id,
             )
             billing_service.record_usage(
                 actor,
@@ -300,11 +424,14 @@ def create_app(
     )
     def list_pdf_submissions(
         actor: Actor,
+        assignment_id: str | None = None,
         limit: Annotated[int, Query(ge=1, le=100)] = 50,
         offset: Annotated[int, Query(ge=0)] = 0,
     ) -> list[PdfSubmissionRecord]:
         del actor
-        return pdf_repository.list_submissions(limit=limit, offset=offset)
+        return pdf_repository.list_submissions(
+            assignment_id=assignment_id, limit=limit, offset=offset
+        )
 
     @application.get(
         "/v1/pdf-submissions/{submission_id}",

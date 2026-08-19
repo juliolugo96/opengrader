@@ -10,11 +10,13 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { QueryError } from "@/components/ui/QueryError";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { listAuditEvents } from "@/lib/api-client";
+import { useI18n } from "@/lib/i18n";
 import { useSettings } from "@/lib/use-settings";
 import { cn, formatDate, humanizeAction, shortId } from "@/lib/utils";
 
 export default function AuditPage() {
   const settings = useSettings();
+  const { t } = useI18n();
   const events = useQuery({
     queryKey: ["audit-events", settings.apiBaseUrl, Boolean(settings.apiKey)],
     queryFn: () => listAuditEvents(500),
@@ -26,33 +28,33 @@ export default function AuditPage() {
     <div className="space-y-7">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="eyebrow">Immutable operations record</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Audit trail</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Trace every durable job transition to a worker or non-secret API-key fingerprint.</p>
+          <p className="eyebrow">{t("audit.eyebrow")}</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">{t("audit.title")}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("audit.subtitle")}</p>
         </div>
-        <Button aria-label="Refresh audit events" disabled={!settings.apiKey || events.isFetching} onClick={() => events.refetch()} size="icon" variant="secondary">
+        <Button aria-label={t("audit.refresh")} disabled={!settings.apiKey || events.isFetching} onClick={() => events.refetch()} size="icon" variant="secondary">
           <RefreshCw aria-hidden="true" className={`size-4 ${events.isFetching ? "animate-spin" : ""}`} />
         </Button>
       </div>
 
       <section className="panel overflow-hidden">
         {!settings.apiKey ? (
-          <EmptyState icon={<History className="size-5" />} title="Credentials required" description="Configure your bearer key before accessing the audit trail." />
+          <EmptyState icon={<History className="size-5" />} title={t("audit.credentials")} description={t("audit.credentialsBody")} />
         ) : events.isPending ? (
           <div aria-label="Loading audit trail" className="space-y-2 p-4">{Array.from({ length: 7 }, (_, index) => <Skeleton className="h-16" key={index} />)}</div>
         ) : events.isError ? (
           <QueryError error={events.error} retry={() => events.refetch()} />
         ) : events.data.length === 0 ? (
-          <EmptyState icon={<Activity className="size-5" />} title="No events yet" description="Creating a grading job will start the chronological audit trail." />
+          <EmptyState icon={<Activity className="size-5" />} title={t("audit.empty")} description={t("audit.emptyBody")} />
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table min-w-[760px]">
               <thead>
                 <tr>
-                  <th scope="col">Timestamp</th>
-                  <th scope="col">Event</th>
-                  <th scope="col">Actor / key fingerprint</th>
-                  <th scope="col">Job reference</th>
+                  <th scope="col">{t("audit.timestamp")}</th>
+                  <th scope="col">{t("audit.event")}</th>
+                  <th scope="col">{t("audit.actor")}</th>
+                  <th scope="col">{t("audit.reference")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -78,7 +80,7 @@ export default function AuditPage() {
                       <Link className="font-mono text-xs font-semibold text-primary hover:underline" href={`/jobs/${event.resource_id}`} title={event.resource_id}>
                         {shortId(event.resource_id)}
                       </Link>
-                      {index === events.data.length - 1 ? <span className="ml-2 text-[0.65rem] uppercase tracking-wider text-muted-foreground">latest</span> : null}
+                      {index === events.data.length - 1 ? <span className="ml-2 text-[0.65rem] uppercase tracking-wider text-muted-foreground">{t("audit.latest")}</span> : null}
                     </td>
                   </tr>
                 ))}

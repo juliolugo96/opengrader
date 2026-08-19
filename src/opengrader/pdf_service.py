@@ -48,6 +48,7 @@ class PdfGradingService:
         student_id: str,
         title: str,
         actor: str,
+        assignment_id: str | None = None,
     ) -> PdfSubmissionRecord:
         filename = Path((upload.filename or "").replace("\\", "/")).name
         if not filename.lower().endswith(".pdf"):
@@ -91,6 +92,7 @@ class PdfGradingService:
                 sha256=digest.hexdigest(),
                 page_count=metadata.page_count,
                 actor=actor,
+                assignment_id=assignment_id,
             )
         except Exception:
             temporary.unlink(missing_ok=True)

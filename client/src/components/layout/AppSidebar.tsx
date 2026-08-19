@@ -1,32 +1,35 @@
 "use client";
 
-import { ClipboardList, CreditCard, FileCheck2, History, Settings2 } from "lucide-react";
+import { BookOpen, ClipboardList, CreditCard, FileCheck2, History, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { BrandWordmark } from "@/components/layout/BrandLogo";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { href: "/jobs", label: "Grading jobs", shortLabel: "Jobs", icon: ClipboardList },
-  { href: "/pdf", label: "PDF grading", shortLabel: "PDFs", icon: FileCheck2 },
-  { href: "/audit", label: "Audit trail", shortLabel: "Audit", icon: History },
-  { href: "/billing", label: "Billing & usage", shortLabel: "Billing", icon: CreditCard },
-  { href: "/settings", label: "Settings", shortLabel: "Settings", icon: Settings2 }
+  { href: "/assignments", key: "nav.assignments", icon: BookOpen },
+  { href: "/jobs", key: "nav.jobs", icon: ClipboardList },
+  { href: "/pdf", key: "nav.pdf", icon: FileCheck2 },
+  { href: "/audit", key: "nav.audit", icon: History },
+  { href: "/billing", key: "nav.billing", icon: CreditCard },
+  { href: "/settings", key: "nav.settings", icon: Settings2 }
 ] as const;
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
     <>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r bg-card/90 p-5 backdrop-blur-xl md:flex md:flex-col">
-        <Link aria-label="OpenGrader jobs" className="block rounded-xl" href="/jobs">
+        <Link aria-label="OpenGrader" className="block rounded-xl" href="/assignments">
           <span className="block rounded-xl border border-slate-200/80 bg-white px-3 py-2 shadow-sm">
             <BrandWordmark />
           </span>
           <span className="mt-2 block px-1 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-muted-foreground">
-            Operations console
+            {t("nav.console")}
           </span>
         </Link>
 
@@ -47,7 +50,7 @@ export function AppSidebar() {
                 key={item.href}
               >
                 <Icon aria-hidden="true" className="size-[1.1rem]" strokeWidth={1.8} />
-                {item.label}
+                {t(item.key)}
                 {active ? <span className="ml-auto size-1.5 rounded-full bg-primary" /> : null}
               </Link>
             );
@@ -55,16 +58,16 @@ export function AppSidebar() {
         </nav>
 
         <div className="mt-auto rounded-2xl border bg-muted/45 p-4">
-          <p className="eyebrow">Local first</p>
+          <p className="eyebrow">{t("nav.localFirst")}</p>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            Your credentials stay in this browser. Grading remains on your configured OpenGrader host.
+            {t("nav.localFirstBody")}
           </p>
         </div>
       </aside>
 
       <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 rounded-2xl border bg-card/95 p-1.5 shadow-panel backdrop-blur-xl md:hidden"
+        className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-6 rounded-2xl border bg-card/95 p-1.5 shadow-panel backdrop-blur-xl md:hidden"
       >
         {navigation.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -80,7 +83,7 @@ export function AppSidebar() {
               key={item.href}
             >
               <Icon aria-hidden="true" className="size-4" />
-              {item.shortLabel}
+              <span className="max-w-full truncate px-0.5">{t(item.key)}</span>
             </Link>
           );
         })}

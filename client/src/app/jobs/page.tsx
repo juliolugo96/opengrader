@@ -1,66 +1,51 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ClipboardList, Plus, RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import Link from "next/link";
 
 import { JobStatsCards } from "@/components/jobs/JobStatsCards";
 import { JobTable } from "@/components/jobs/JobTable";
-import { NewJobModal } from "@/components/jobs/NewJobModal";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonStyles } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { QueryError } from "@/components/ui/QueryError";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { createJob, listAllJobs } from "@/lib/api-client";
+import { listAllJobs } from "@/lib/api-client";
 import { useSettings } from "@/lib/use-settings";
+import { useI18n } from "@/lib/i18n";
 
 export default function JobsPage() {
-  const [modalOpen, setModalOpen] = useState(false);
   const settings = useSettings();
-  const router = useRouter();
-  const queryClient = useQueryClient();
+  const { t } = useI18n();
   const jobs = useQuery({
     queryKey: ["jobs", settings.apiBaseUrl, Boolean(settings.apiKey)],
     queryFn: listAllJobs,
     enabled: Boolean(settings.apiKey),
     refetchInterval: (query) => query.state.data?.some((job) => job.status === "queued" || job.status === "running") ? 3_000 : false
   });
-  const newJob = useMutation({
-    mutationFn: createJob,
-    onSuccess: async (job) => {
-      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      setModalOpen(false);
-      router.push(`/jobs/${job.id}`);
-    }
-  });
-  const closeModal = useCallback(() => {
-    setModalOpen(false);
-    newJob.reset();
-  }, [newJob]);
 
   return (
     <div className="space-y-7">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="eyebrow">MVP 4 · Operations</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Grading jobs</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Enqueue assignments, watch workers, and move from test output to actionable grades.</p>
+          <p className="eyebrow">{t("jobs.eyebrow")}</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">{t("jobs.title")}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("jobs.subtitle")}</p>
         </div>
         <div className="flex gap-2">
           <Button aria-label="Refresh jobs" disabled={!settings.apiKey || jobs.isFetching} onClick={() => jobs.refetch()} size="icon" variant="secondary">
             <RefreshCw aria-hidden="true" className={`size-4 ${jobs.isFetching ? "animate-spin" : ""}`} />
           </Button>
-          <Button disabled={!settings.apiKey} onClick={() => setModalOpen(true)}>
+          <Link aria-disabled={!settings.apiKey} className={buttonStyles({ className: !settings.apiKey ? "pointer-events-none opacity-50" : "" })} href="/assignments">
             <Plus aria-hidden="true" className="size-4" />
-            New job
-          </Button>
+            {t("jobs.choose")}
+          </Link>
         </div>
       </div>
 
       {!settings.apiKey ? (
         <div className="panel">
-          <EmptyState icon={<ClipboardList className="size-5" />} title="Connect OpenGrader to begin" description="Configure your API URL and bearer key. Job history will appear here once the connection is ready." />
+          <EmptyState icon={<ClipboardList className="size-5" />} title={t("jobs.connectTitle")} description={t("jobs.connectBody")} />
         </div>
       ) : jobs.isPending ? (
         <JobsSkeleton />
@@ -72,14 +57,6 @@ export default function JobsPage() {
           <JobTable jobs={jobs.data} />
         </>
       )}
-
-      <NewJobModal
-        onClose={closeModal}
-        onSubmit={(input) => newJob.mutate(input)}
-        open={modalOpen}
-        pending={newJob.isPending}
-        serverError={newJob.error?.message}
-      />
     </div>
   );
 }

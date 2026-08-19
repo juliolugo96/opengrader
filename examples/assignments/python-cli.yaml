@@ -1,0 +1,27 @@
+# Expected submission file: cli.py with add and divide subcommands.
+name: Python command-line calculator
+image: python:3.12-slim
+setup: python -m compileall -q .
+timeout_seconds: 5
+memory_mb: 128
+cpus: 0.5
+pids_limit: 32
+tests:
+  - name: Help is available
+    command: python cli.py --help >/dev/null
+    points: 1
+  - name: Addition writes the result
+    command: test "$(python cli.py add 19 23)" = "42"
+    points: 3
+  - name: Negative operands work
+    command: test "$(python cli.py add -7 2)" = "-5"
+    points: 2
+  - name: Division works
+    command: test "$(python cli.py divide 9 3)" = "3"
+    points: 2
+  - name: Division by zero is a user error
+    command: >-
+      python cli.py divide 1 0 >stdout.txt 2>stderr.txt;
+      code=$?;
+      test "$code" -eq 2 && grep -qi "zero" stderr.txt
+    points: 2

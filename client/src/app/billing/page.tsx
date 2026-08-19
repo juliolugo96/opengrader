@@ -9,9 +9,11 @@ import { QueryError } from "@/components/ui/QueryError";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { createBillingCheckout, createBillingPortal, getBillingOverview } from "@/lib/api-client";
 import { useSettings } from "@/lib/use-settings";
+import { useI18n } from "@/lib/i18n";
 
 export default function BillingPage() {
   const settings = useSettings();
+  const { t } = useI18n();
   const overview = useQuery({
     queryKey: ["billing-overview", settings.apiBaseUrl, Boolean(settings.apiKey)],
     queryFn: getBillingOverview,
@@ -31,13 +33,13 @@ export default function BillingPage() {
   return (
     <div className="space-y-7">
       <div>
-        <p className="eyebrow">MVP 6 · Hosted edition</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Billing &amp; usage</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Manage hosted access and inspect durable Stripe meter delivery without coupling billing state to grades.</p>
+        <p className="eyebrow">{t("billing.eyebrow")}</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">{t("billing.title")}</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("billing.subtitle")}</p>
       </div>
 
       {!settings.apiKey ? (
-        <div className="panel"><EmptyState icon={<CreditCard className="size-5" />} title="Connect OpenGrader to view billing" description="Configure the API URL and bearer key in Settings first." /></div>
+        <div className="panel"><EmptyState icon={<CreditCard className="size-5" />} title={t("billing.connect")} description={t("billing.connectBody")} /></div>
       ) : null}
       {settings.apiKey && overview.isPending ? <Skeleton className="h-96" /> : null}
       {settings.apiKey && overview.isError ? <div className="panel"><QueryError error={overview.error} retry={() => overview.refetch()} /></div> : null}

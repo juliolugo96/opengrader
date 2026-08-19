@@ -1,0 +1,5 @@
+# Expected submission file: solution.py
+name: Minimal Python program
+tests:
+  - name: Program exits successfully
+    command: python solution.py

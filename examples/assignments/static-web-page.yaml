@@ -1,0 +1,47 @@
+# Expected submission files: index.html and styles.css.
+name: Accessible static profile page
+image: python:3.12-slim
+timeout_seconds: 5
+memory_mb: 128
+cpus: 1
+pids_limit: 32
+tests:
+  - name: Required files exist
+    command: test -f index.html && test -f styles.css
+    points: 1
+  - name: Document declares language and title
+    command: >-
+      python -c 'from pathlib import Path;
+      page = Path("index.html").read_text().lower();
+      assert "<html" in page and "lang=" in page and "<title>" in page'
+    points: 2
+  - name: Uses semantic landmarks
+    command: >-
+      python -c 'from pathlib import Path;
+      page = Path("index.html").read_text().lower();
+      assert all(tag in page for tag in ("<header", "<main", "<footer"))'
+    points: 3
+  - name: Images include alternative text
+    command: |
+      python - <<'PY'
+      from html.parser import HTMLParser
+      from pathlib import Path
+
+      class ImageAudit(HTMLParser):
+          missing = 0
+
+          def handle_starttag(self, tag, attrs):
+              if tag == "img" and not dict(attrs).get("alt"):
+                  self.missing += 1
+
+      audit = ImageAudit()
+      audit.feed(Path("index.html").read_text())
+      assert audit.missing == 0
+      PY
+    points: 2
+  - name: Stylesheet is linked
+    command: >-
+      python -c 'from pathlib import Path;
+      page = Path("index.html").read_text().lower();
+      assert "<link" in page and "styles.css" in page'
+    points: 2

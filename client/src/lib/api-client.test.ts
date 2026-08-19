@@ -2,20 +2,26 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
+  createAssignment,
   createBillingCheckout,
   createBillingPortal,
   createJob,
+  deleteAssignment,
   getPdfDocument,
   getPdfFeedback,
   getPdfSubmission,
   getBillingOverview,
+  listAuditEvents,
   listAllPdfSubmissions,
   listAllJobs,
+  listAssignments,
   listJobs,
   listPdfSubmissions,
   savePdfGrade,
+  launchAssignment,
   testConnection,
-  uploadPdfSubmission
+  uploadPdfSubmission,
+  updateAssignment
 } from "@/lib/api-client";
 import { saveSettings } from "@/lib/storage";
 
@@ -24,7 +30,7 @@ const fetchMock = vi.fn<typeof fetch>();
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
-  saveSettings({ apiBaseUrl: "http://localhost:8000", apiKey: "secret-key", theme: "dark" });
+  saveSettings({ apiBaseUrl: "http://localhost:8000", apiKey: "secret-key", theme: "dark", locale: "en" });
 });
 
 describe("API client", () => {
@@ -49,7 +55,8 @@ describe("API client", () => {
     const health = await testConnection({
       apiBaseUrl: "https://override.example",
       apiKey: "override-key",
-      theme: "light"
+      theme: "light",
+      locale: "en"
     });
 
     expect(health.version).toBe("0.6.0");
@@ -87,6 +94,48 @@ describe("API client", () => {
       submission_filter: "section-a-*",
       no_docker: false
     });
+  });
+
+  it("creates, filters, updates, launches, and deletes academic assignments", async () => {
+    fetchMock.mockImplementation(async () => new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } }));
+    const input = {
+      name: "Primary source essay",
+      kind: "pdf" as const,
+      context: { institution: "Riverdale College", course_code: "HIST-204", course_name: "Modern History", period: "Fall 2026", section: "B" },
+      automated: null
+    };
+
+    await listAssignments({ institution: "Riverdale College", courseCode: "HIST-204", period: "Fall 2026", section: "B" });
+    await createAssignment(input);
+    await updateAssignment("assignment 1", input);
+    await launchAssignment("assignment 1", { submissionsDirectory: " submissions ", workers: 3, retries: 1, submissionPatterns: ["section-*"], noDocker: false });
+    await deleteAssignment("assignment 1");
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/opengrader/v1/assignments?limit=100&offset=0&institution=Riverdale+College&course_code=HIST-204&period=Fall+2026&section=B",
+      "/api/opengrader/v1/assignments",
+      "/api/opengrader/v1/assignments/assignment%201",
+      "/api/opengrader/v1/assignments/assignment%201/jobs",
+      "/api/opengrader/v1/assignments/assignment%201"
+    ]);
+    expect(fetchMock.mock.calls.map(([, options]) => options?.method)).toEqual([undefined, "POST", "PUT", "POST", "DELETE"]);
+    expect(new Headers(fetchMock.mock.calls[1][1]?.headers).get("Content-Type")).toBe("application/json");
+    expect(new Headers(fetchMock.mock.calls[2][1]?.headers).get("Content-Type")).toBe("application/json");
+    expect(new Headers(fetchMock.mock.calls[3][1]?.headers).get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(input);
+    expect(JSON.parse(String(fetchMock.mock.calls[3][1]?.body))).toEqual({ submissions_dir: "submissions", workers: 3, retries: 1, submission_patterns: ["section-*"], no_docker: false });
+  });
+
+  it("omits empty academic filters and loads the audit ledger", async () => {
+    fetchMock.mockImplementation(async () => new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    await listAssignments();
+    await listAuditEvents(25);
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/opengrader/v1/assignments?limit=100&offset=0",
+      "/api/opengrader/v1/audit-events?limit=25"
+    ]);
   });
 
   it("loads billing state and creates server-owned checkout and portal sessions", async () => {
@@ -151,7 +200,17 @@ describe("API client", () => {
     const form = options?.body as FormData;
     expect(form.get("student_id")).toBe("alice");
     expect(form.get("title")).toBe("Research paper");
+    expect(form.get("assignment_id")).toBeNull();
     expect(form.get("file")).toBe(file);
+  });
+
+  it("associates PDF transport with a saved assignment", async () => {
+    fetchMock.mockResolvedValue(new Response("{}", { status: 201, headers: { "Content-Type": "application/json" } }));
+    const file = new File(["%PDF-test"], "paper.pdf", { type: "application/pdf" });
+
+    await uploadPdfSubmission({ file, studentId: "alice", title: "Essay", assignmentId: "assignment-1" });
+
+    expect((fetchMock.mock.calls[0][1]?.body as FormData).get("assignment_id")).toBe("assignment-1");
   });
 
   it("loads every PDF submissions page and addresses individual records", async () => {
@@ -176,8 +235,8 @@ describe("API client", () => {
   it("passes explicit PDF listing boundaries", async () => {
     fetchMock.mockResolvedValue(new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } }));
 
-    expect(await listPdfSubmissions({ limit: 25, offset: 50 })).toEqual([]);
-    expect(fetchMock.mock.calls[0][0]).toBe("/api/opengrader/v1/pdf-submissions?limit=25&offset=50");
+    expect(await listPdfSubmissions({ assignmentId: "assignment-1", limit: 25, offset: 50 })).toEqual([]);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/opengrader/v1/pdf-submissions?limit=25&offset=50&assignment_id=assignment-1");
   });
 
   it("saves the complete rubric and annotation contract", async () => {

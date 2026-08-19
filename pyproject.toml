@@ -53,6 +53,7 @@ source_paths = [
   "src/opengrader/mvp4_contract.py",
   "src/opengrader/pdf_contract.py",
   "src/opengrader/billing_contract.py",
+  "src/opengrader/academic.py",
 ]
 pytest_add_cli_args_test_selection = ["tests/unit/"]
 also_copy = [
@@ -60,6 +61,9 @@ also_copy = [
   "src/opengrader/__init__.py",
   "src/opengrader/api.py",
   "src/opengrader/api_models.py",
+  "src/opengrader/academic.py",
+  "src/opengrader/academic_repository.py",
+  "src/opengrader/academic_service.py",
   "src/opengrader/billing.py",
   "src/opengrader/billing_contract.py",
   "src/opengrader/billing_repository.py",

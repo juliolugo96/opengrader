@@ -1,0 +1,22 @@
+# Expected submission file: main.c reading two integers and printing their sum.
+name: C program with strict compilation
+image: gcc:14
+setup: cc -std=c17 -Wall -Wextra -Werror -O2 -o solution main.c
+timeout_seconds: 10
+memory_mb: 128
+cpus: 1
+pids_limit: 64
+tests:
+  - name: Compiles cleanly
+    command: test -x solution
+    points: 2
+  - name: Adds positive integers
+    command: test "$(printf '20 22\n' | ./solution)" = "42"
+    points: 3
+  - name: Adds signed integers
+    command: test "$(printf '%s\n' '-12 5' | ./solution)" = "-7"
+    points: 3
+  - name: Rejects malformed input
+    command: '! printf "not-a-number\n" | ./solution >/dev/null 2>&1'
+    points: 2
+    timeout_seconds: 2
