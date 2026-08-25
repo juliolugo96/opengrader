@@ -19,10 +19,18 @@ export default defineConfig({
     screenshot: "only-on-failure",
     trace: "retain-on-failure"
   },
-  webServer: {
-    command: "npm run start:standalone",
-    url: "http://127.0.0.1:3100/jobs",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000
-  }
+  webServer: [
+    {
+      command: "../.venv/bin/python e2e/support/start_api.py",
+      url: "http://127.0.0.1:8100/health",
+      reuseExistingServer: false,
+      timeout: 120_000
+    },
+    {
+      command: "npm run start:standalone",
+      url: "http://127.0.0.1:3100/jobs",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000
+    }
+  ]
 });

@@ -1,8 +1,8 @@
-# MVP 5 Design — PDF Grading
+# PDF Grading Design
 
 ## Outcome
 
-MVP 5 adds a manual grading workflow for untrusted PDF submissions without
+The PDF workflow adds manual grading for untrusted PDF submissions without
 coupling documents to the automated code-job state machine. An instructor can
 upload a PDF, define a rubric, record criterion scores and page comments,
 finalize the grade, and download a feedback-preserving PDF.
@@ -50,7 +50,7 @@ and finalization add append-only audit events with resource type
 
 ## Security boundaries
 
-MVP 5 never executes PDF content and never trusts its filename or MIME type as
+OpenGrader never executes PDF content and never trusts its filename or MIME type as
 proof of validity. Files are written in chunks, size-checked while streaming,
 parsed in strict mode, rejected when encrypted, and stored outside the static
 web root. PDF parsing is still a complex-file-format boundary; deployments

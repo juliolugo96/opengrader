@@ -1,13 +1,13 @@
-# MVP 2 TDAID Record
+# TDAID Record — Batch Grading
 
-OpenGrader MVP 2 follows Test-Driven AI Development:
+OpenGrader batch grading follows Test-Driven AI Development:
 Plan → Red → Green → Refactor → Validate.
 
 ## Plan
 
-- Scope and architectural decisions: [MVP2_DESIGN.md](MVP2_DESIGN.md)
+- Scope and architectural decisions: [BATCH_GRADING_DESIGN.md](BATCH_GRADING_DESIGN.md)
 - Acceptance language: `tests/features/batch_grading.feature`
-- Compatibility gate: every MVP 1 test remains green without fixture changes.
+- Compatibility gate: every initial CLI test remains green without fixture changes.
 - Completion gate: unit, integration, Gherkin end-to-end, and mutation suites all
   execute; package and example commands succeed.
 
@@ -22,7 +22,7 @@ Executable contracts are added before their production behavior:
 
 Observed Red gate: `pytest` exited `2` with three collection errors because
 `credit_for` and `select_submissions` did not exist. This verified that the new
-contracts could not pass against the MVP 1 implementation.
+contracts could not pass against the initial CLI implementation.
 
 ## Green
 
@@ -52,6 +52,6 @@ Validation results:
   report wording. Docker remains validated with a real-container smoke test.
 - local batch example: JSON and CSV content cross-checked successfully
 
-The mutation gate intentionally focuses on the MVP 2 batch/scoring engine. It
+The mutation gate intentionally focuses on the batch/scoring engine. It
 does not claim that cosmetic strings or Docker CLI assembly have a 100% mutation
 score. This scope is explicit so the number remains meaningful and repeatable.

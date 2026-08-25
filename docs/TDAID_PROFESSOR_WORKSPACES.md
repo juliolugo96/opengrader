@@ -51,6 +51,6 @@ uses a Suspense-safe App Router boundary.
   content and navigation with no framework error overlay.
 - Python mutation suite: `232/234` killed (`99.15%`); every new academic
   contract mutant was killed. The two survivors are equivalent pre-existing
-  MVP 4 floating-point rounding mutations.
+  operations dashboard floating-point rounding mutations.
 - Frontend mutation suite: `185/187` killed (`98.93%`), with complete mutation
   coverage for the new assignment and PDF-association API transport.

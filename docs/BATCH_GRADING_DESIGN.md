@@ -1,10 +1,10 @@
-# MVP 2 Architecture and Design
+# Batch Grading Architecture and Design
 
 ## Goal
 
-MVP 2 turns the synchronous pass/fail MVP into a deterministic batch grader. It
+Batch grading turns the synchronous pass/fail grader into a deterministic batch grader. It
 adds partial credit, submission filtering, bounded retries, parallel workers,
-and CSV export without invalidating MVP 1 assignment files or JSON consumers.
+and CSV export without invalidating initial CLI assignment files or JSON consumers.
 
 ## Behavioral contract
 
@@ -68,5 +68,5 @@ boundaries. Pure scoring logic maps execution outcomes to credit fractions.
   decimal places.
 - Pattern typos can silently exclude work; every supplied pattern must match.
 - Mutation testing can be slow and presentation mutations add little confidence;
-  the repeatable gate targets the high-risk MVP 2 batch/scoring engine. Broader
+  the repeatable gate targets the high-risk batch/scoring engine. Broader
   exploratory runs are recorded separately and survivors are reviewed.

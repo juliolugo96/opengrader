@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from opengrader.mvp4_contract import (
+from opengrader.dashboard_contract import (
     cohort_totals,
     normalize_job_request_payload,
     validate_job_page,

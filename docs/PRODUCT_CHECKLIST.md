@@ -1,4 +1,4 @@
-# MVP Checklist
+# Product Capability Checklist
 
 - [x] `opengrader run` CLI command
 - [x] Strict Pydantic validation for YAML configuration
@@ -10,9 +10,9 @@
 - [x] Markdown summary
 - [x] Unit and CLI integration tests
 - [x] Runnable example
-- [x] Architecture, security, roadmap, future prompts, and premium documentation
+- [x] Architecture, security, roadmap, and premium documentation
 
-## MVP 2
+## Batch grading
 
 - [x] Backward-compatible partial-credit configuration
 - [x] Stable submission filtering
@@ -25,7 +25,7 @@
 - [x] Mutation testing configuration and validation
 - [x] TDAID Plan, Red, Green, Refactor, and Validate record
 
-## MVP 3
+## Authenticated API
 
 - [x] Strict FastAPI request and response contracts
 - [x] Authenticated job, result, listing, and audit routes
@@ -38,11 +38,11 @@
 - [x] Mutation testing configuration and validation
 - [x] Local deployment, architecture, security, and TDAID documentation
 
-MVP completion means the example command succeeds and the test suite passes. It
+Capability completion means the example command succeeds and the test suite passes. It
 does not imply that Docker alone is sufficient for adversarial multi-tenant use;
 see [SECURITY.md](SECURITY.md).
 
-## MVP 4
+## Operations dashboard
 
 - [x] Responsive React operations dashboard
 - [x] Complete paginated job history and result drill-down
@@ -50,7 +50,7 @@ see [SECURITY.md](SECURITY.md).
 - [x] Accessible loading, empty, success, and failure states
 - [x] Unit, proxy integration, Gherkin browser, and mutation tests
 
-## MVP 5
+## PDF grading
 
 - [x] Authenticated multipart PDF upload
 - [x] Streamed byte limits, strict parsing, encryption rejection, and page limits
@@ -60,9 +60,9 @@ see [SECURITY.md](SECURITY.md).
 - [x] Annotated PDF export with embedded structured feedback
 - [x] PDF queue, authenticated preview, and grading workspace
 - [x] Unit, integration, API Gherkin, browser Gherkin, and mutation tests
-- [x] MVP 5 architecture, security, API, and TDAID documentation
+- [x] Architecture, security, API, and TDAID documentation
 
-## MVP 6
+## Hosted billing
 
 - [x] Billing disabled by default with unlimited local grading
 - [x] Hosted active/trialing entitlement enforcement
@@ -72,4 +72,18 @@ see [SECURITY.md](SECURITY.md).
 - [x] Durable, retryable, idempotent usage-meter outbox
 - [x] Billing and usage dashboard with accessible subscription states
 - [x] Unit, integration, API Gherkin, browser Gherkin, and mutation tests
-- [x] MVP 6 architecture, operations, security, and TDAID documentation
+- [x] Architecture, operations, security, and TDAID documentation
+
+## LMS integrations
+
+- [x] Provider-neutral LMS adapter registry
+- [x] Server-owned Canvas authentication and same-origin bounded pagination
+- [x] Canvas course and assignment discovery
+- [x] Assignment import and existing-assignment linking
+- [x] Successful automated and finalized PDF grade synchronization
+- [x] Canvas, SIS, and login identifier strategies
+- [x] Dry-run previews and idempotent delivery records
+- [x] Localized instructor workspace and transparent plan comparison
+- [x] Unit, integration, API Gherkin, browser Gherkin, and mutation tests
+- [x] Real browser-to-API-to-SQLite persistence scenario
+- [x] Architecture, operations, security, plans, and TDAID documentation

@@ -3,6 +3,13 @@
 OpenGrader is a batch pipeline with CLI and API entry points around deliberately
 small interfaces:
 
+Written assignments can also create durable structural-similarity jobs. The
+Community topology uses the shared SQLite database, existing PDF object paths,
+an in-process managed worker, and a pure versioned winnowing engine. This is a
+reduced deployment of the same ingestion/extraction/candidate/comparison/report
+boundaries intended for hosted scaling. See
+[`SIMILARITY_REVIEW_DESIGN.md`](SIMILARITY_REVIEW_DESIGN.md).
+
 ```text
 assignment YAML ──> validation ─┐
                                ├─> grading engine ─> result models ─> JSON + Markdown
@@ -46,6 +53,14 @@ signed Stripe webhook ─> idempotent ledger         │
 accepted job/PDF ─> isolated usage outbox ─> Stripe meter-event worker
 ```
 
+```text
+server-owned Canvas token ─> LMS adapter registry ─> Canvas REST API
+                                  │                       ▲
+Canvas course/assignment ─> local academic assignment    │
+                                  │                       │
+successful job/final PDF ─> grade sync service ─> idempotent delivery ledger
+```
+
 ## Components
 
 - `config.py` defines the strict Pydantic assignment schema and translates YAML
@@ -86,6 +101,16 @@ accepted job/PDF ─> isolated usage outbox ─> Stripe meter-event worker
   entitlement enforcement, and background usage delivery.
 - `stripe_gateway.py` is the narrow Stripe SDK adapter. It is the only module
   that knows Stripe request shapes.
+- `lms.py` defines provider-neutral course, assignment, link, identity, and
+  grade-sync contracts.
+- `lms_adapter.py` defines the adapter protocol and registry used to add future
+  LMS providers without changing orchestration.
+- `canvas_adapter.py` owns Canvas REST authentication, strict normalization,
+  same-origin bounded pagination, identifier encoding, and grade submission.
+- `lms_repository.py` persists assignment links and successful delivery keys in
+  SQLite with append-only audit events.
+- `lms_service.py` imports remote metadata and permits grade delivery only from
+  successful automated jobs or finalized PDF submissions.
 
 Each test starts from a fresh copy of the submission. In Docker mode the source
 is mounted read-only, copied into an in-memory workspace, and run without network
@@ -98,7 +123,7 @@ future execution backends can be added without changing scoring or reports.
 
 The API's SQLite database is the source of truth. Its state machine is
 `queued -> running -> succeeded|failed`, with interrupted running jobs returned
-to `queued` on startup. MVP 3 deliberately runs one in-process worker in one API
+to `queued` on startup. The API deliberately runs one in-process worker in one API
 process; distributed leases and cancellation are future concerns.
 
 PDF submissions are separate from automated jobs. Their state machine is
@@ -115,3 +140,19 @@ state only from signed webhooks, and grants access only for `active` or
 older deliveries from overwriting newer state. Accepted jobs and PDFs create
 independent outbox records; a background worker sends them with their UUID as
 the Stripe meter-event identifier and retries failures without changing grades.
+
+LMS credentials are deployment configuration rather than tenant data. The API
+returns only provider status, a non-secret account label, and the base origin.
+Canvas pagination is capped and same-origin to prevent bearer-token forwarding.
+Grade synchronization is synchronous and records only successful
+deliveries; a dry run writes nothing, while a replayed successful delivery is
+skipped by its deterministic key.
+
+## End-to-end verification boundary
+
+The browser suite includes a live persistence journey in addition to its
+deterministic product scenarios. Playwright starts the production Next.js
+server and a real FastAPI process with isolated temporary storage. Assignment
+creation crosses the same-origin proxy, authentication, application service,
+SQLite repository, audit ledger, API response, and React Query rendering, then
+a browser reload proves durable retrieval. See [E2E_TESTING.md](E2E_TESTING.md).

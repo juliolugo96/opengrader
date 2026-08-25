@@ -6,21 +6,34 @@ import {
   createBillingCheckout,
   createBillingPortal,
   createJob,
+  createSimilarityJob,
   deleteAssignment,
+  getJob,
+  getJobResult,
   getPdfDocument,
   getPdfFeedback,
   getPdfSubmission,
+  getSimilarityReport,
   getBillingOverview,
+  importLmsAssignment,
   listAuditEvents,
   listAllPdfSubmissions,
   listAllJobs,
   listAssignments,
   listJobs,
+  listLmsAssignments,
+  listLmsCourses,
+  listLmsLinks,
+  listLmsProviders,
   listPdfSubmissions,
+  listSimilarityJobs,
+  linkLmsAssignment,
   savePdfGrade,
+  syncLmsGrades,
   launchAssignment,
   testConnection,
   uploadPdfSubmission,
+  unlinkLmsAssignment,
   updateAssignment
 } from "@/lib/api-client";
 import { saveSettings } from "@/lib/storage";
@@ -161,6 +174,68 @@ describe("API client", () => {
     expect(fetchMock.mock.calls[2][1]?.method).toBe("POST");
   });
 
+  it("discovers, imports, links, and synchronizes LMS assignments through encoded routes", async () => {
+    fetchMock.mockImplementation(async () => new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } }));
+    const input = {
+      external_course_id: "course 7",
+      external_assignment_id: "assignment/9",
+      kind: "pdf" as const,
+      context: { institution: "Riverdale College", course_code: "HIST-204", course_name: "History", period: "Fall 2026", section: "A" }
+    };
+
+    await listLmsProviders();
+    await listLmsCourses();
+    await listLmsAssignments("course 7");
+    await importLmsAssignment(input);
+    await listLmsLinks();
+    await linkLmsAssignment({
+      local_assignment_id: "local assignment",
+      external_course_id: "course 7",
+      external_assignment_id: "assignment/9"
+    });
+    await unlinkLmsAssignment("local assignment");
+    await syncLmsGrades("local assignment", { job_id: null, student_id_type: "sis_user_id", dry_run: true });
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/opengrader/v1/lms/providers",
+      "/api/opengrader/v1/lms/canvas/courses",
+      "/api/opengrader/v1/lms/canvas/courses/course%207/assignments",
+      "/api/opengrader/v1/lms/canvas/imports",
+      "/api/opengrader/v1/lms/links",
+      "/api/opengrader/v1/lms/canvas/links",
+      "/api/opengrader/v1/lms/links/local%20assignment",
+      "/api/opengrader/v1/lms/links/local%20assignment/grades"
+    ]);
+    expect(JSON.parse(String(fetchMock.mock.calls[3][1]?.body))).toEqual(input);
+    expect(fetchMock.mock.calls[3][1]?.method).toBe("POST");
+    expect(new Headers(fetchMock.mock.calls[3][1]?.headers).get("Content-Type")).toBe("application/json");
+    expect(fetchMock.mock.calls[5][1]?.method).toBe("POST");
+    expect(new Headers(fetchMock.mock.calls[5][1]?.headers).get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(String(fetchMock.mock.calls[5][1]?.body))).toEqual({
+      local_assignment_id: "local assignment",
+      external_course_id: "course 7",
+      external_assignment_id: "assignment/9"
+    });
+    expect(fetchMock.mock.calls[6][1]?.method).toBe("DELETE");
+    expect(fetchMock.mock.calls[7][1]?.method).toBe("POST");
+    expect(new Headers(fetchMock.mock.calls[7][1]?.headers).get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(String(fetchMock.mock.calls[7][1]?.body))).toEqual({
+      job_id: null, student_id_type: "sis_user_id", dry_run: true
+    });
+  });
+
+  it("addresses individual job status and result resources", async () => {
+    fetchMock.mockImplementation(async () => new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    await getJob("job / 7");
+    await getJobResult("job / 7");
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/opengrader/v1/jobs/job%20%2F%207",
+      "/api/opengrader/v1/jobs/job%20%2F%207/result"
+    ]);
+  });
+
   it("loads every jobs page so dashboard totals are complete", async () => {
     const firstPage = Array.from({ length: 100 }, (_, index) => ({ id: `job-${index}` }));
     const secondPage = [{ id: "job-100" }];
@@ -230,6 +305,25 @@ describe("API client", () => {
       "/api/opengrader/v1/pdf-submissions?limit=100&offset=100",
       "/api/opengrader/v1/pdf-submissions/pdf%20100"
     ]);
+  });
+
+  it("creates, filters, and retrieves assignment similarity reviews", async () => {
+    fetchMock.mockImplementation(async () => new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    await createSimilarityJob("essay 1");
+    await listSimilarityJobs("essay 1");
+    await listSimilarityJobs();
+    await getSimilarityReport("job / 7");
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/opengrader/v1/similarity/jobs",
+      "/api/opengrader/v1/similarity/jobs?limit=100&offset=0&assignment_id=essay+1",
+      "/api/opengrader/v1/similarity/jobs?limit=100&offset=0",
+      "/api/opengrader/v1/similarity/jobs/job%20%2F%207/report"
+    ]);
+    expect(fetchMock.mock.calls[0][1]?.method).toBe("POST");
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ assignment_id: "essay 1" });
   });
 
   it("passes explicit PDF listing boundaries", async () => {

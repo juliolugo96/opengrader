@@ -27,6 +27,9 @@ def test_settings_load_paths_keys_and_poll_interval(monkeypatch, tmp_path: Path)
     monkeypatch.setenv("OPENGRADER_STRIPE_PRICE_ID", "price_settings")
     monkeypatch.setenv("OPENGRADER_PUBLIC_URL", "https://grader.example")
     monkeypatch.setenv("OPENGRADER_STRIPE_METER_EVENT_NAME", "grader_units")
+    monkeypatch.setenv("OPENGRADER_CANVAS_BASE_URL", "https://canvas.example")
+    monkeypatch.setenv("OPENGRADER_CANVAS_ACCESS_TOKEN", "canvas-secret")
+    monkeypatch.setenv("OPENGRADER_CANVAS_ACCOUNT_NAME", "College Canvas")
     monkeypatch.setenv("OPENGRADER_API_KEYS", " first, second ,,first ")
     monkeypatch.setenv("OPENGRADER_POLL_INTERVAL", "0.25")
 
@@ -43,6 +46,9 @@ def test_settings_load_paths_keys_and_poll_interval(monkeypatch, tmp_path: Path)
     assert settings.stripe_price_id == "price_settings"
     assert settings.public_url == "https://grader.example"
     assert settings.stripe_meter_event_name == "grader_units"
+    assert settings.canvas_base_url == "https://canvas.example"
+    assert settings.canvas_access_token == "canvas-secret"
+    assert settings.canvas_account_name == "College Canvas"
     assert settings.api_keys == ("first", "second")
     assert settings.poll_interval == 0.25
 
@@ -66,10 +72,20 @@ def test_settings_repr_does_not_reveal_stripe_secrets() -> None:
         stripe_secret_key="sk_test_never_log_me",
         stripe_webhook_secret="whsec_never_log_me",
         stripe_price_id="price_test",
+        canvas_base_url="https://canvas.example",
+        canvas_access_token="canvas_never_log_me",
     )
 
     assert "sk_test_never_log_me" not in repr(settings)
     assert "whsec_never_log_me" not in repr(settings)
+    assert "canvas_never_log_me" not in repr(settings)
+
+
+def test_canvas_settings_fail_closed_when_configuration_is_partial() -> None:
+    with pytest.raises(ValueError, match="Canvas integration requires"):
+        ApiSettings(canvas_base_url="https://canvas.example")
+    with pytest.raises(ValueError, match="Canvas integration requires"):
+        ApiSettings(canvas_access_token="token-only")
 
 
 def test_job_request_defaults_to_docker_and_single_attempt() -> None:
@@ -83,7 +99,7 @@ def test_job_request_defaults_to_docker_and_single_attempt() -> None:
     assert request.submission_patterns == []
 
 
-def test_job_request_accepts_mvp4_documented_field_names() -> None:
+def test_job_request_accepts_documented_dashboard_field_names() -> None:
     request = ApiJobRequest.model_validate(
         {
             "assignment_path": "assignments/hw1.yaml",

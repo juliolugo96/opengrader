@@ -1,6 +1,6 @@
 # OpenGrader Console
 
-The MVP 4 dashboard is an isolated Next.js application for the OpenGrader API.
+The operations dashboard is an isolated Next.js application for the OpenGrader API.
 It stores its API URL, bearer key, and theme in versioned browser localStorage.
 
 ## Development
@@ -30,9 +30,12 @@ npm run test:mutation
 ```
 
 `test:e2e` builds the dashboard and executes its Gherkin scenarios through
-Playwright against an isolated production server on port 3100. `test:mutation`
-runs Stryker against critical API pagination, export, and result-metric logic
-and enforces a minimum mutation score.
+Playwright against an isolated production server on port 3100. It also starts a
+real OpenGrader API on port 8100 with temporary SQLite storage for the browser →
+proxy → API → persistence → browser scenario. See the
+[end-to-end testing guide](../docs/E2E_TESTING.md). `test:mutation` runs Stryker
+against critical API pagination, export, and result-metric logic and enforces a
+minimum mutation score.
 
 The server-side catch-all proxy exists to keep local browser requests same-origin
 without enabling permissive CORS on the grading API. It forwards only the
@@ -55,3 +58,11 @@ In hosted mode it renders Stripe subscription status, renewal or cancellation
 timing, accepted/reported/pending usage units, Checkout email validation, and a
 Customer Portal action. The browser supplies only the billing email; Price IDs,
 return URLs, customer binding, and entitlement decisions stay server-owned.
+
+## LMS integrations and plans
+
+`/integrations` discovers Canvas courses and assignments through the API,
+imports or links academic work, and previews or submits grades. No Canvas token
+is accepted by the browser. `/plans` gives a localized, explicit comparison of
+Community, Hosted early access, and Institution/design-partner scope; roadmap
+items are labeled as planned.

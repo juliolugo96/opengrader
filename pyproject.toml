@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengrader"
-version = "0.6.0"
+version = "0.7.0"
 description = "A local-first, CLI autograder"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -50,10 +50,13 @@ markers = [
 [tool.mutmut]
 source_paths = [
   "src/opengrader/worker.py",
-  "src/opengrader/mvp4_contract.py",
+  "src/opengrader/dashboard_contract.py",
   "src/opengrader/pdf_contract.py",
   "src/opengrader/billing_contract.py",
   "src/opengrader/academic.py",
+  "src/opengrader/lms_contract.py",
+  "src/opengrader/similarity.py",
+  "src/opengrader/similarity_contract.py",
 ]
 pytest_add_cli_args_test_selection = ["tests/unit/"]
 also_copy = [
@@ -72,7 +75,12 @@ also_copy = [
   "src/opengrader/config.py",
   "src/opengrader/errors.py",
   "src/opengrader/grader.py",
-  "src/opengrader/mvp4_contract.py",
+  "src/opengrader/canvas_adapter.py",
+  "src/opengrader/lms.py",
+  "src/opengrader/lms_adapter.py",
+  "src/opengrader/lms_repository.py",
+  "src/opengrader/lms_service.py",
+  "src/opengrader/dashboard_contract.py",
   "src/opengrader/pdf_contract.py",
   "src/opengrader/pdf_grading.py",
   "src/opengrader/pdf_repository.py",
@@ -82,5 +90,10 @@ also_copy = [
   "src/opengrader/runners.py",
   "src/opengrader/submissions.py",
   "src/opengrader/stripe_gateway.py",
+  "src/opengrader/similarity.py",
+  "src/opengrader/similarity_contract.py",
+  "src/opengrader/similarity_repository.py",
+  "src/opengrader/similarity_service.py",
+  "src/opengrader/similarity_worker.py",
 ]
 on_dependency_change = "rerun"

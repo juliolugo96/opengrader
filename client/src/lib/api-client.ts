@@ -11,9 +11,20 @@ import type {
   Job,
   JobResultResponse,
   JobStatus,
+  GradeSyncInput,
+  GradeSyncReport,
+  LmsAssignmentImportInput,
+  LmsAssignmentImportResponse,
+  LmsAssignmentLink,
+  LmsAssignmentLinkInput,
+  LmsConnectionStatus,
+  LmsCourse,
+  LmsRemoteAssignment,
   PdfGradeRequest,
   PdfSubmission,
-  PdfUploadInput
+  PdfUploadInput,
+  SimilarityJob,
+  SimilarityReport
 } from "@/types/grader";
 
 interface RequestOptions extends RequestInit {
@@ -149,6 +160,57 @@ export function createBillingPortal(): Promise<BillingSessionResponse> {
   return apiRequest<BillingSessionResponse>("/v1/billing/portal", { method: "POST" });
 }
 
+export function listLmsProviders(): Promise<LmsConnectionStatus[]> {
+  return apiRequest<LmsConnectionStatus[]>("/v1/lms/providers");
+}
+
+export function listLmsCourses(): Promise<LmsCourse[]> {
+  return apiRequest<LmsCourse[]>("/v1/lms/canvas/courses");
+}
+
+export function listLmsAssignments(courseId: string): Promise<LmsRemoteAssignment[]> {
+  return apiRequest<LmsRemoteAssignment[]>(
+    `/v1/lms/canvas/courses/${encodeURIComponent(courseId)}/assignments`
+  );
+}
+
+export function importLmsAssignment(input: LmsAssignmentImportInput): Promise<LmsAssignmentImportResponse> {
+  return apiRequest<LmsAssignmentImportResponse>("/v1/lms/canvas/imports", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+}
+
+export function listLmsLinks(): Promise<LmsAssignmentLink[]> {
+  return apiRequest<LmsAssignmentLink[]>("/v1/lms/links");
+}
+
+export function linkLmsAssignment(input: LmsAssignmentLinkInput): Promise<LmsAssignmentLink> {
+  return apiRequest<LmsAssignmentLink>("/v1/lms/canvas/links", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+}
+
+export function unlinkLmsAssignment(localAssignmentId: string): Promise<void> {
+  return apiRequest<void>(`/v1/lms/links/${encodeURIComponent(localAssignmentId)}`, {
+    method: "DELETE"
+  });
+}
+
+export function syncLmsGrades(localAssignmentId: string, input: GradeSyncInput): Promise<GradeSyncReport> {
+  return apiRequest<GradeSyncReport>(
+    `/v1/lms/links/${encodeURIComponent(localAssignmentId)}/grades`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input)
+    }
+  );
+}
+
 export function listPdfSubmissions(options: { assignmentId?: string; limit?: number; offset?: number } = {}): Promise<PdfSubmission[]> {
   const search = new URLSearchParams({
     limit: String(options.limit ?? 100),
@@ -200,6 +262,24 @@ export function getPdfFeedback(submissionId: string): Promise<Blob> {
   return apiRequest<Blob>(`/v1/pdf-submissions/${encodeURIComponent(submissionId)}/feedback.pdf`, {
     responseType: "blob"
   });
+}
+
+export function createSimilarityJob(assignmentId: string): Promise<SimilarityJob> {
+  return apiRequest<SimilarityJob>("/v1/similarity/jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ assignment_id: assignmentId })
+  });
+}
+
+export function listSimilarityJobs(assignmentId?: string): Promise<SimilarityJob[]> {
+  const search = new URLSearchParams({ limit: "100", offset: "0" });
+  if (assignmentId) search.set("assignment_id", assignmentId);
+  return apiRequest<SimilarityJob[]>(`/v1/similarity/jobs?${search}`);
+}
+
+export function getSimilarityReport(jobId: string): Promise<SimilarityReport> {
+  return apiRequest<SimilarityReport>(`/v1/similarity/jobs/${encodeURIComponent(jobId)}/report`);
 }
 
 async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {

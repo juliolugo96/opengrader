@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 
-import type { AcademicAssignment, BillingOverview, PdfGradeRequest, PdfSubmission } from "../../src/types/grader";
+import type { AcademicAssignment, BillingOverview, LmsAssignmentLink, PdfGradeRequest, PdfSubmission, SimilarityJob } from "../../src/types/grader";
 
 const { Given, When, Then } = createBdd();
 
@@ -92,6 +92,9 @@ const draftPdfSubmission: PdfSubmission = {
 
 let pdfSubmission: PdfSubmission = { ...draftPdfSubmission };
 let academicAssignments: AcademicAssignment[] = [];
+let lmsLinks: LmsAssignmentLink[] = [];
+let similarityJobs: SimilarityJob[] = [];
+let similaritySubmissions: PdfSubmission[] = [];
 
 const billingOverview: BillingOverview = {
   mode: "hosted",
@@ -118,6 +121,9 @@ Given("saved OpenGrader API credentials", async ({ page }) => {
 Given("a deterministic grader API", async ({ page }) => {
   pdfSubmission = { ...draftPdfSubmission };
   academicAssignments = [];
+  lmsLinks = [];
+  similarityJobs = [];
+  similaritySubmissions = [];
   await page.route("**/api/opengrader/**", async (route) => {
     const requestUrl = new URL(route.request().url());
     const apiPath = requestUrl.pathname.replace("/api/opengrader", "");
@@ -127,6 +133,31 @@ Given("a deterministic grader API", async ({ page }) => {
       payload = { status: "ok", version: "0.6.0", authentication_configured: true };
     } else if (apiPath === "/v1/billing/overview") {
       payload = billingOverview;
+    } else if (apiPath === "/v1/lms/providers") {
+      payload = [{ provider: "canvas", configured: true, account_name: "Riverdale Canvas", base_url: "https://canvas.example" }];
+    } else if (apiPath === "/v1/lms/canvas/courses") {
+      payload = [{ id: "7", name: "World History", course_code: "HIST-204", term: "Fall 2026" }];
+    } else if (apiPath === "/v1/lms/canvas/courses/7/assignments") {
+      payload = [{ id: "99", course_id: "7", name: "Primary source essay", description: "Compare two sources", points_possible: 40, due_at: null, published: true, submission_types: ["online_upload"] }];
+    } else if (apiPath === "/v1/lms/canvas/imports") {
+      const input = route.request().postDataJSON() as { context: AcademicAssignment["context"] };
+      const assignment: AcademicAssignment = {
+        id: "canvas-local-1", name: "Primary source essay", kind: "pdf",
+        context: input.context, automated: null, created_by: "key:0123456789ab",
+        created_at: "2026-08-21T12:00:00Z", updated_at: "2026-08-21T12:00:00Z"
+      };
+      const link: LmsAssignmentLink = {
+        id: "link-1", local_assignment_id: assignment.id, provider: "canvas",
+        external_course_id: "7", external_assignment_id: "99",
+        created_by: "key:0123456789ab", created_at: "2026-08-21T12:00:00Z", updated_at: "2026-08-21T12:00:00Z"
+      };
+      academicAssignments.push(assignment);
+      lmsLinks.push(link);
+      payload = { assignment, link };
+    } else if (apiPath === "/v1/lms/links") {
+      payload = lmsLinks;
+    } else if (apiPath === "/v1/lms/links/canvas-local-1/grades") {
+      payload = { local_assignment_id: "canvas-local-1", provider: "canvas", dry_run: true, attempted: 1, sent: 0, skipped: 0, failed: 0, deliveries: [{ student_id: "S-100", posted_grade: "90%", status: "planned", detail: null }] };
     } else if (apiPath === `/v1/pdf-submissions/${draftPdfSubmission.id}/document`) {
       await route.fulfill({ status: 200, contentType: "application/pdf", body: "%PDF-1.4\n%%EOF" });
       return;
@@ -161,7 +192,23 @@ Given("a deterministic grader API", async ({ page }) => {
     } else if (apiPath === "/v1/pdf-submissions" && route.request().method() === "POST") {
       payload = pdfSubmission;
     } else if (apiPath === "/v1/pdf-submissions") {
-      payload = [];
+      payload = similaritySubmissions;
+    } else if (apiPath === "/v1/similarity/jobs" && route.request().method() === "POST") {
+      const assignmentId = (route.request().postDataJSON() as { assignment_id: string }).assignment_id;
+      similarityJobs = [{
+        id: "similarity-job-1", assignment_id: assignmentId, status: "succeeded", submission_count: 2,
+        request: { assignment_id: assignmentId, policy: { ngram_size: 5, window_size: 4, min_shared_fingerprints: 2, review_threshold: 0.25, high_signal_threshold: 0.65, max_documents: 200, max_candidate_pairs: 10000, max_evidence_per_match: 5, max_characters_per_document: 1000000 } },
+        created_by: "key:0123456789ab", created_at: "2026-08-22T12:00:00Z", updated_at: "2026-08-22T12:00:01Z", started_at: "2026-08-22T12:00:00Z", completed_at: "2026-08-22T12:00:01Z", error: null
+      }];
+      payload = similarityJobs[0];
+    } else if (apiPath === "/v1/similarity/jobs") {
+      payload = similarityJobs;
+    } else if (apiPath === "/v1/similarity/jobs/similarity-job-1/report") {
+      payload = {
+        job_id: "similarity-job-1", assignment_id: "similarity-assignment", algorithm_version: "structural-winnowing-v1", generated_at: "2026-08-22T12:00:01Z", corpus_size: 2, candidate_pairs_evaluated: 1,
+        matches: [{ left_submission_id: "pdf-a", left_student_id: "alice", right_submission_id: "pdf-b", right_student_id: "bob", score: 0.72, containment: 0.8, jaccard: 0.6, coverage: 0.6, band: "high_signal", exact_match: false, shared_fingerprints: 8, evidence: [{ fingerprint: "abc", left_excerpt: "the coastal habitat declines", right_excerpt: "the coastal habitat declines", left_start: 0, left_end: 10, right_start: 4, right_end: 14 }] }],
+        indeterminate_documents: [], warnings: [], disclaimer: "Similarity signals support instructor review; they do not determine plagiarism or academic misconduct."
+      };
     } else if (apiPath === `/v1/jobs/${completedJob.id}/result`) {
       payload = resultResponse;
     } else if (apiPath === `/v1/jobs/${completedJob.id}`) {
@@ -328,6 +375,31 @@ Then("I can download the annotated feedback PDF", async ({ page }) => {
   expect((await download).suggestedFilename()).toBe("pdf-submission-1-feedback.pdf");
 });
 
+When("I open similarity review for an assignment with two submissions", async ({ page }) => {
+  academicAssignments = [{
+    id: "similarity-assignment", name: "Coastal systems", kind: "pdf", automated: null,
+    context: { institution: "Northstar", course_code: "BIO-201", course_name: "Ecology", period: "Spring 2027", section: "A" },
+    created_by: "key:test", created_at: "2026-08-22T00:00:00Z", updated_at: "2026-08-22T00:00:00Z"
+  }];
+  similaritySubmissions = [
+    { ...draftPdfSubmission, id: "pdf-a", assignment_id: "similarity-assignment", student_id: "alice" },
+    { ...draftPdfSubmission, id: "pdf-b", assignment_id: "similarity-assignment", student_id: "bob" }
+  ];
+  await page.goto("/similarity");
+  await page.getByRole("combobox", { name: "Written assignment" }).selectOption("similarity-assignment");
+});
+
+When("I start the structural review", async ({ page }) => {
+  await page.getByRole("button", { name: "Start review" }).click();
+});
+
+Then("I see explainable overlap and the human-review warning", async ({ page }) => {
+  await expect(page.getByText("alice ↔ bob")).toBeVisible();
+  await expect(page.getByText("72% structural score")).toBeVisible();
+  await expect(page.getByText(/do not determine plagiarism/i)).toBeVisible();
+  await expect(page.getByText("the coastal habitat declines").first()).toBeVisible();
+});
+
 When("I open billing and usage", async ({ page }) => {
   await page.goto("/billing");
 });
@@ -342,4 +414,57 @@ Then("I see accepted, reported, and pending usage units", async ({ page }) => {
   await expect(page.getByText("Accepted units").locator("..").locator("..")).toContainText("12");
   await expect(page.getByText("Reported to Stripe").locator("..").locator("..")).toContainText("10");
   await expect(page.getByText("Pending delivery").locator("..").locator("..")).toContainText("2");
+});
+
+When("I open LMS integrations", async ({ page }) => {
+  await page.goto("/integrations");
+});
+
+Then("I see the configured Canvas account", async ({ page }) => {
+  await expect(page.getByRole("heading", { name: "Riverdale Canvas" })).toBeVisible();
+  await expect(page.getByText("https://canvas.example")).toBeVisible();
+});
+
+When("I import a Canvas assignment for a course section", async ({ page }) => {
+  await page.getByRole("combobox", { name: "Canvas course" }).selectOption("7");
+  await page.getByRole("button", { name: "Import Primary source essay" }).click();
+  await page.getByLabel("Institution").fill("Riverdale College");
+  await page.getByLabel("Section").fill("A");
+  await page.getByRole("button", { name: "Import assignment" }).click();
+});
+
+Then("the assignment is linked for grade synchronization", async ({ page }) => {
+  await expect(page.getByRole("button", { name: "Synchronize Primary source essay" })).toBeVisible();
+  await expect(page.getByText("Canvas · 7 / 99")).toBeVisible();
+});
+
+When("I preview its grade synchronization", async ({ page }) => {
+  await page.getByRole("checkbox", { name: "Dry run" }).check();
+  await page.getByRole("button", { name: "Synchronize Primary source essay" }).click();
+});
+
+Then("I see a dry-run delivery report", async ({ page }) => {
+  await expect(page.getByText("Latest synchronization")).toBeVisible();
+  await expect(page.getByText("Attempted").locator("..")).toContainText("1");
+  await expect(page.getByText("Sent").locator("..")).toContainText("0");
+});
+
+When("I open product plans", async ({ page }) => {
+  await page.goto("/plans");
+});
+
+Then("I see Community, Hosted, and Institution options", async ({ page }) => {
+  await expect(page.getByRole("heading", { name: "Community" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hosted" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Institution" })).toBeVisible();
+});
+
+Then("roadmap capabilities are labeled as planned", async ({ page }) => {
+  const roleAccess = page.getByText("Role-based access").locator("..");
+  await expect(roleAccess).toContainText("Planned");
+  await expect(page.getByText("Managed autoscaling workers").locator("..")).toContainText("Planned");
+});
+
+Then("Canvas synchronization is labeled as available now", async ({ page }) => {
+  await expect(page.getByText("Canvas grade synchronization").locator("..")).toContainText("Available now");
 });

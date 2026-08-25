@@ -1,4 +1,4 @@
-# TDAID Record — MVP 5 PDF Grading
+# TDAID Record — PDF Grading
 
 ## Plan
 
@@ -19,7 +19,7 @@ The smallest end-to-end slice introduced a PDF grading domain, a durable SQLite
 repository, authenticated upload/grading/export routes, and a dashboard queue,
 preview, rubric editor, annotation editor, finalization action, and feedback
 download. Generated storage paths, strict parsing, bounded streaming, and
-immutable final grades enforce the MVP contract.
+immutable final grades enforce the grading contract.
 
 ## Refactor
 
@@ -39,7 +39,7 @@ Validation on 2026-08-18 completed successfully:
 - 4 Playwright Gherkin scenarios passed against the production Next.js build,
   including upload, annotation, rubric scoring, and finalization.
 - Python mutation testing killed 219 of 221 mutants (99.10%). The two survivors
-  are pre-existing equivalent MVP 4 rounding mutations; all MVP 5 PDF contract
+  are pre-existing equivalent dashboard rounding mutations; all PDF contract
   mutants were killed.
 - Frontend mutation testing killed 150 of 150 mutants (100%).
 - TypeScript type checking, ESLint, the production build, and `npm audit` passed;

@@ -240,3 +240,149 @@ export interface BillingOverview {
 export interface BillingSessionResponse {
   url: string;
 }
+
+export type LmsProvider = "canvas";
+export type StudentIdType = "canvas_user_id" | "sis_user_id" | "login_id";
+
+export interface LmsConnectionStatus {
+  provider: LmsProvider;
+  configured: boolean;
+  account_name: string | null;
+  base_url: string | null;
+}
+
+export interface LmsCourse {
+  id: string;
+  name: string;
+  course_code: string;
+  term: string | null;
+}
+
+export interface LmsRemoteAssignment {
+  id: string;
+  course_id: string;
+  name: string;
+  description: string;
+  points_possible: number | null;
+  due_at: string | null;
+  published: boolean;
+  submission_types: string[];
+}
+
+export interface LmsAssignmentImportInput {
+  external_course_id: string;
+  external_assignment_id: string;
+  kind: AcademicAssignmentKind;
+  context: AcademicContext;
+  automated?: AutomatedAssignmentDefinition | null;
+}
+
+export interface LmsAssignmentLinkInput {
+  local_assignment_id: string;
+  external_course_id: string;
+  external_assignment_id: string;
+}
+
+export interface LmsAssignmentLink extends LmsAssignmentLinkInput {
+  id: string;
+  provider: LmsProvider;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LmsAssignmentImportResponse {
+  assignment: AcademicAssignment;
+  link: LmsAssignmentLink;
+}
+
+export interface GradeSyncInput {
+  job_id: string | null;
+  student_id_type: StudentIdType;
+  dry_run: boolean;
+}
+
+export interface GradeSyncDelivery {
+  student_id: string;
+  posted_grade: string;
+  status: "planned" | "sent" | "skipped" | "failed";
+  detail: string | null;
+}
+
+export interface GradeSyncReport {
+  local_assignment_id: string;
+  provider: LmsProvider;
+  dry_run: boolean;
+  attempted: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  deliveries: GradeSyncDelivery[];
+}
+
+export type SimilarityJobStatus = "queued" | "running" | "succeeded" | "failed";
+export type SimilarityBand = "review" | "high_signal";
+
+export interface SimilarityPolicy {
+  ngram_size: number;
+  window_size: number;
+  min_shared_fingerprints: number;
+  review_threshold: number;
+  high_signal_threshold: number;
+  max_documents: number;
+  max_candidate_pairs: number;
+  max_evidence_per_match: number;
+  max_characters_per_document: number;
+}
+
+export interface SimilarityJob {
+  id: string;
+  assignment_id: string;
+  status: SimilarityJobStatus;
+  request: { assignment_id: string; policy: SimilarityPolicy };
+  submission_count: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error: string | null;
+}
+
+export interface SimilarityEvidence {
+  fingerprint: string;
+  left_excerpt: string;
+  right_excerpt: string;
+  left_start: number;
+  left_end: number;
+  right_start: number;
+  right_end: number;
+}
+
+export interface SimilarityMatch {
+  left_submission_id: string;
+  left_student_id: string;
+  right_submission_id: string;
+  right_student_id: string;
+  score: number;
+  containment: number;
+  jaccard: number;
+  coverage: number;
+  band: SimilarityBand;
+  exact_match: boolean;
+  shared_fingerprints: number;
+  evidence: SimilarityEvidence[];
+}
+
+export interface SimilarityReport {
+  job_id: string;
+  assignment_id: string;
+  algorithm_version: string;
+  generated_at: string;
+  corpus_size: number;
+  candidate_pairs_evaluated: number;
+  matches: SimilarityMatch[];
+  indeterminate_documents: string[];
+  warnings: string[];
+  disclaimer: string;
+}

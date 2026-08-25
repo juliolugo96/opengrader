@@ -12,7 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from opengrader.mvp4_contract import cohort_totals, normalize_job_request_payload
+from opengrader.dashboard_contract import cohort_totals, normalize_job_request_payload
 from opengrader.results import GradingResult
 
 
@@ -138,6 +138,9 @@ class ApiSettings:
     stripe_price_id: str | None = None
     public_url: str = "http://localhost:3000"
     stripe_meter_event_name: str = "opengrader_grading_units"
+    canvas_base_url: str | None = None
+    canvas_access_token: str | None = field(default=None, repr=False)
+    canvas_account_name: str | None = None
     api_keys: tuple[str, ...] = ()
     poll_interval: float = 0.25
 
@@ -160,6 +163,11 @@ class ApiSettings:
         if not 1 <= len(self.stripe_meter_event_name) <= 100:
             raise ValueError(
                 "stripe_meter_event_name must contain between 1 and 100 characters"
+            )
+        if bool(self.canvas_base_url) != bool(self.canvas_access_token):
+            raise ValueError(
+                "Canvas integration requires OPENGRADER_CANVAS_BASE_URL and "
+                "OPENGRADER_CANVAS_ACCESS_TOKEN together"
             )
 
     @classmethod
@@ -198,6 +206,9 @@ class ApiSettings:
             stripe_meter_event_name=os.getenv(
                 "OPENGRADER_STRIPE_METER_EVENT_NAME", "opengrader_grading_units"
             ),
+            canvas_base_url=os.getenv("OPENGRADER_CANVAS_BASE_URL") or None,
+            canvas_access_token=os.getenv("OPENGRADER_CANVAS_ACCESS_TOKEN") or None,
+            canvas_account_name=os.getenv("OPENGRADER_CANVAS_ACCOUNT_NAME") or None,
             api_keys=keys,
             poll_interval=float(os.getenv("OPENGRADER_POLL_INTERVAL", "0.25")),
         )

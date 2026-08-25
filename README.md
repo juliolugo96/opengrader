@@ -5,7 +5,9 @@ HTTP interfaces. It discovers one submission per folder, runs assignment tests
 in isolated Docker containers, and writes JSON, Markdown, and CSV reports. The
 authenticated service and dashboard add durable asynchronous jobs, an audit
 trail, and manual PDF grading with rubrics, page annotations, and
-feedback-preserving exports. Hosted deployments can optionally enforce Stripe
+feedback-preserving exports. Assignment-scoped similarity review adds versioned
+structural signals and explainable excerpts for instructor review without
+issuing academic-misconduct verdicts. Hosted deployments can optionally enforce Stripe
 subscriptions and meter accepted grading operations while local grading stays
 free.
 
@@ -100,7 +102,7 @@ rubric, record criterion feedback, place normalized page comments, and finalize
 the grade. Finalized grades are immutable and can be downloaded as annotated
 PDFs containing an embedded structured feedback record. The default upload
 limits are 10 MiB and 200 pages; see the [API operations guide](docs/API.md) and
-[MVP 5 design](docs/MVP5_DESIGN.md).
+[PDF grading design](docs/PDF_GRADING_DESIGN.md).
 
 ## Professor assignment workspace
 
@@ -114,15 +116,33 @@ stay attached to the correct course context.
 Choose English, Español, or 简体中文 in **Settings**. The preference stays in the
 current browser and updates the document language for assistive technology.
 
+## Similarity review
+
+Open **Similarity review**, choose a written/PDF assignment with at least two
+submissions, and start a durable structural analysis. The report shows bounded
+candidate pairs, scores, and evidence excerpts. It is evidence for human review,
+not a plagiarism verdict. See the [similarity review design](docs/SIMILARITY_REVIEW_DESIGN.md).
+
 ## Hosted billing
 
 Billing is disabled by default. In hosted mode, the **Billing & usage** dashboard
 starts Stripe Checkout, opens the Customer Portal, displays webhook-derived
 subscription state, and tracks durable usage delivery. Access is granted only
 from signed Stripe lifecycle webhooks; Checkout redirects are never trusted as
-proof of payment. See the [MVP 6 design](docs/MVP6_DESIGN.md) and
+proof of payment. See the [hosted billing design](docs/HOSTED_BILLING_DESIGN.md) and
 [API operations guide](docs/API.md) for Stripe meter, Price, webhook, and
 environment configuration.
+
+## Canvas LMS integration
+
+The localized **LMS integrations** workspace lets instructors browse
+Canvas courses, import an assignment into the open local catalog, link existing
+work, preview synchronization, and return finalized PDF or successful automated
+grades using Canvas, SIS, or login identifiers. Successful delivery is
+idempotent, and Canvas credentials remain in the server environment.
+
+See the [LMS integration design](docs/LMS_INTEGRATIONS_DESIGN.md), [Canvas API operations](docs/API.md#connect-canvas),
+and [edition comparison](docs/PLANS.md).
 
 ## Assignment format
 
@@ -178,7 +198,17 @@ pytest -m e2e
 mutmut run
 ```
 
-See the [MVP 6 design](docs/MVP6_DESIGN.md), [TDAID record](docs/TDAID_MVP6.md),
+The client also includes Playwright Gherkin coverage plus a real browser →
+Next.js proxy → FastAPI → temporary SQLite → browser persistence journey:
+
+```sh
+cd client
+npm run test:e2e
+```
+
+See the [LMS integration design](docs/LMS_INTEGRATIONS_DESIGN.md), [TDAID record](docs/TDAID_LMS_INTEGRATIONS.md),
+[end-to-end testing guide](docs/E2E_TESTING.md),
 [professor workspace guide](docs/PROFESSOR_WORKSPACES.md),
+[plans](docs/PLANS.md),
 [architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and
 [roadmap](docs/ROADMAP.md) for scope and design details.

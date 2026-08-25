@@ -1,7 +1,16 @@
 # Security
 
-Student submissions are untrusted code. OpenGrader uses Docker as a practical MVP
+Student submissions are untrusted code. OpenGrader uses Docker as a practical isolation
 boundary, but Docker containers are not equivalent to dedicated virtual machines.
+
+## Similarity evidence
+
+Similarity review is restricted to the selected assignment and snapshots only
+submission identifiers and policy in its job request. Extracted document text
+is processed in memory and is never included in logs or audit details. Reports
+store only bounded evidence excerpts. Same-student resubmissions are excluded,
+short or unextractable documents are explicitly indeterminate, and every durable
+state transition is audited. Similarity bands are not misconduct verdicts.
 
 ## Default controls
 
@@ -73,6 +82,29 @@ instructors should use a patched viewer and avoid trusting embedded links or
 attachments. OpenGrader adds only printable text annotations and its own JSON
 feedback attachment.
 
+## Canvas LMS integration
+
+The Canvas access token is a privileged server credential. It is loaded only
+from the process environment, excluded from settings representations, and never
+stored in SQLite, browser storage, API responses, or audit details. Use a
+dedicated least-privilege Canvas token, rotate it outside OpenGrader, and do not
+place it in assignment configuration or logs.
+
+The configured Canvas address must be a credential-free HTTPS origin. Course,
+assignment, and student identifiers are percent encoded. Pagination is limited
+to 50 pages and every next link must retain the exact configured origin so a
+malicious or compromised response cannot forward the bearer token elsewhere.
+Deployments should still enforce outbound network policy so the API can reach
+only the intended Canvas host.
+
+Only finalized PDF grades and successful automated-job results can be sent.
+Dry runs contact no grade endpoint and write no delivery state. A successful
+delivery is recorded under a deterministic key, making normal replay safe.
+Remote partial failure remains visible in the response and is not marked
+delivered, so an instructor can retry it. Review student-ID strategy before the
+first live sync; choosing the wrong Canvas, SIS, or login namespace can update
+the wrong enrollment if institutional identifiers are inconsistent.
+
 API requests contain server-local paths, so authenticated callers can ask the
 service to read assignment and submission directories accessible to its OS
 account. Treat keys as privileged credentials, run OpenGrader under a dedicated
@@ -80,11 +112,11 @@ least-privilege account, and keep its readable filesystem narrow. Bind to
 loopback by default. Any network deployment needs TLS and authentication at a
 trusted reverse proxy in addition to the application key.
 
-MVP 3 supports a single API process with one managed worker. Do not run multiple
+authenticated API supports a single API process with one managed worker. Do not run multiple
 processes against the same database. As with the CLI, setting `no_docker: true`
 executes trusted submission code with the API process user's host permissions.
 
-## Known MVP limitations
+## Known deployment limitations
 
 - Assignment authors are trusted; their image and commands are executed as
   configured.
@@ -94,13 +126,15 @@ executes trusted submission code with the API process user's host permissions.
   centralized audit logs, and additional sandboxing such as microVMs.
 - API keys have no built-in rotation, scope, expiration, or rate limiting.
 - A hosted subscription is keyed to its API-key fingerprint. Rotating that key
-  requires an operator migration of the billing account in this MVP.
+  requires an operator migration of the billing account in this release.
 - PDF validation is in-process rather than isolated in a parser sandbox.
 - Hosted billing uses a single-process usage worker; horizontally scaled
   deployments need leased outbox claims or a distributed queue.
 - Stripe event timestamps have one-second resolution. Equal-timestamp lifecycle
   events rely on delivery order; operators should reconcile anomalous accounts
   against Stripe before granting manual overrides.
+- Canvas grade delivery is synchronous; large cohorts or upstream rate limits
+  need a future leased outbox worker with provider-aware backoff.
 
 Report vulnerabilities privately to the project maintainers rather than opening
 a public issue containing exploit details.

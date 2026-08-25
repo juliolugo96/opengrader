@@ -2,7 +2,7 @@
 
 import os
 import secrets
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -46,6 +46,7 @@ from opengrader.billing_service import (
     BillingUsageWorker,
     BillingWebhookError,
 )
+from opengrader.canvas_adapter import CanvasAdapter
 from opengrader.api_models import (
     ApiJobRequest,
     ApiSettings,
@@ -56,10 +57,39 @@ from opengrader.api_models import (
     ResultStatistics,
     api_key_id,
 )
+from opengrader.lms import (
+    GradeSyncReport,
+    GradeSyncRequest,
+    LmsAssignment,
+    LmsAssignmentImport,
+    LmsAssignmentImportResponse,
+    LmsAssignmentLinkCreate,
+    LmsAssignmentLinkRecord,
+    LmsConnectionStatus,
+    LmsCourse,
+    LmsProvider,
+)
+from opengrader.lms_adapter import (
+    LmsAdapter,
+    LmsAdapterRegistry,
+    LmsNotConfigured,
+    LmsRemoteError,
+)
+from opengrader.lms_repository import LmsRepository
+from opengrader.lms_service import LmsService
 from opengrader.repository import JobRepository
 from opengrader.pdf_grading import PdfGradeRequest, PdfSubmissionRecord
 from opengrader.pdf_repository import PdfSubmissionRepository
 from opengrader.pdf_service import PdfGradingService, PdfUploadTooLarge
+from opengrader.similarity import (
+    SimilarityJobRequest,
+    SimilarityJobResponse,
+    SimilarityJobStatus,
+    SimilarityReport,
+)
+from opengrader.similarity_repository import SimilarityRepository
+from opengrader.similarity_service import SimilarityService, SimilarityTextExtractor
+from opengrader.similarity_worker import SimilarityWorker
 from opengrader.stripe_gateway import StripeBillingGateway
 from opengrader.worker import JobWorker, RunnerFactory, default_runner_factory
 
@@ -69,6 +99,8 @@ def create_app(
     *,
     runner_factory: RunnerFactory = default_runner_factory,
     billing_gateway: BillingGateway | None = None,
+    lms_adapters: Iterable[LmsAdapter] | None = None,
+    similarity_text_extractor: SimilarityTextExtractor | None = None,
 ) -> FastAPI:
     """Build an independently configurable API application."""
 
@@ -79,6 +111,18 @@ def create_app(
         academic_repository, storage_root=active_settings.assignment_storage_root
     )
     pdf_repository = PdfSubmissionRepository(active_settings.database_path)
+    similarity_repository = SimilarityRepository(active_settings.database_path)
+    lms_repository = LmsRepository(active_settings.database_path)
+    active_lms_adapters = list(lms_adapters or ())
+    if lms_adapters is None and active_settings.canvas_base_url:
+        active_lms_adapters.append(
+            CanvasAdapter(
+                base_url=active_settings.canvas_base_url,
+                access_token=active_settings.canvas_access_token or "",
+                account_name=active_settings.canvas_account_name,
+            )
+        )
+    lms_registry = LmsAdapterRegistry(active_lms_adapters)
     billing_repository = BillingRepository(active_settings.database_path)
     active_billing_gateway = billing_gateway
     if active_settings.billing_enabled and active_billing_gateway is None:
@@ -102,11 +146,31 @@ def create_app(
         max_upload_bytes=active_settings.pdf_max_upload_bytes,
         max_pages=active_settings.pdf_max_pages,
     )
+    similarity_service = SimilarityService(
+        similarity_repository,
+        academic_repository,
+        pdf_repository,
+        storage_root=active_settings.pdf_storage_root,
+        text_extractor=similarity_text_extractor,
+    )
+    lms_service = LmsService(
+        registry=lms_registry,
+        repository=lms_repository,
+        academic_service=academic_service,
+        academic_repository=academic_repository,
+        job_repository=repository,
+        pdf_repository=pdf_repository,
+    )
     worker = JobWorker(
         repository,
         output_root=active_settings.output_root,
         poll_interval=active_settings.poll_interval,
         runner_factory=runner_factory,
+    )
+    similarity_worker = SimilarityWorker(
+        similarity_repository,
+        similarity_service,
+        poll_interval=active_settings.poll_interval,
     )
 
     @asynccontextmanager
@@ -115,13 +179,17 @@ def create_app(
         repository.initialize()
         academic_repository.initialize()
         pdf_repository.initialize()
+        similarity_repository.initialize()
+        lms_repository.initialize()
         billing_repository.initialize()
         worker.start()
+        similarity_worker.start()
         billing_usage_worker.start()
         try:
             yield
         finally:
             worker.stop()
+            similarity_worker.stop()
             billing_usage_worker.stop()
 
     application = FastAPI(
@@ -135,6 +203,12 @@ def create_app(
     application.state.academic_service = academic_service
     application.state.pdf_repository = pdf_repository
     application.state.pdf_service = pdf_service
+    application.state.similarity_repository = similarity_repository
+    application.state.similarity_service = similarity_service
+    application.state.similarity_worker = similarity_worker
+    application.state.lms_repository = lms_repository
+    application.state.lms_registry = lms_registry
+    application.state.lms_service = lms_service
     application.state.billing_repository = billing_repository
     application.state.billing_service = billing_service
     application.state.billing_usage_worker = billing_usage_worker
@@ -172,6 +246,116 @@ def create_app(
             "version": __version__,
             "authentication_configured": bool(active_settings.api_keys),
         }
+
+    @application.get(
+        "/v1/lms/providers",
+        response_model=list[LmsConnectionStatus],
+        tags=["lms integrations"],
+    )
+    def list_lms_providers(actor: Actor) -> list[LmsConnectionStatus]:
+        del actor
+        return lms_service.statuses()
+
+    @application.get(
+        "/v1/lms/{provider}/courses",
+        response_model=list[LmsCourse],
+        tags=["lms integrations"],
+    )
+    def list_lms_courses(provider: LmsProvider, actor: Actor) -> list[LmsCourse]:
+        del actor
+        try:
+            return lms_service.courses(provider)
+        except LmsNotConfigured as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except LmsRemoteError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    @application.get(
+        "/v1/lms/{provider}/courses/{course_id}/assignments",
+        response_model=list[LmsAssignment],
+        tags=["lms integrations"],
+    )
+    def list_lms_assignments(
+        provider: LmsProvider, course_id: str, actor: Actor
+    ) -> list[LmsAssignment]:
+        del actor
+        try:
+            return lms_service.assignments(provider, course_id)
+        except LmsNotConfigured as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except (LmsRemoteError, ValueError) as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    @application.post(
+        "/v1/lms/{provider}/imports",
+        response_model=LmsAssignmentImportResponse,
+        status_code=status.HTTP_201_CREATED,
+        tags=["lms integrations", "assignments"],
+    )
+    def import_lms_assignment(
+        provider: LmsProvider, request: LmsAssignmentImport, actor: Actor
+    ) -> LmsAssignmentImportResponse:
+        try:
+            return lms_service.import_assignment(provider, request, actor=actor)
+        except LmsNotConfigured as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except LmsRemoteError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @application.get(
+        "/v1/lms/links",
+        response_model=list[LmsAssignmentLinkRecord],
+        tags=["lms integrations"],
+    )
+    def list_lms_links(actor: Actor) -> list[LmsAssignmentLinkRecord]:
+        del actor
+        return lms_repository.list_links()
+
+    @application.post(
+        "/v1/lms/{provider}/links",
+        response_model=LmsAssignmentLinkRecord,
+        status_code=status.HTTP_201_CREATED,
+        tags=["lms integrations", "assignments"],
+    )
+    def link_lms_assignment(
+        provider: LmsProvider, request: LmsAssignmentLinkCreate, actor: Actor
+    ) -> LmsAssignmentLinkRecord:
+        try:
+            return lms_service.link_assignment(provider, request, actor=actor)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Assignment not found") from exc
+        except LmsNotConfigured as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except LmsRemoteError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @application.delete(
+        "/v1/lms/links/{local_assignment_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+        tags=["lms integrations"],
+    )
+    def unlink_lms_assignment(local_assignment_id: str, actor: Actor) -> None:
+        if not lms_repository.delete_link(local_assignment_id, actor=actor):
+            raise HTTPException(status_code=404, detail="LMS link not found")
+
+    @application.post(
+        "/v1/lms/links/{local_assignment_id}/grades",
+        response_model=GradeSyncReport,
+        tags=["lms integrations"],
+    )
+    def sync_lms_grades(
+        local_assignment_id: str, request: GradeSyncRequest, actor: Actor
+    ) -> GradeSyncReport:
+        try:
+            return lms_service.sync_grades(local_assignment_id, request, actor=actor)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Assignment, link, or job not found") from exc
+        except (LmsNotConfigured, ValueError) as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     @application.post(
         "/v1/jobs",
@@ -497,6 +681,70 @@ def create_app(
             media_type="application/pdf",
             filename=f"{record.id}-feedback.pdf",
         )
+
+    @application.post(
+        "/v1/similarity/jobs",
+        response_model=SimilarityJobResponse,
+        status_code=status.HTTP_202_ACCEPTED,
+        tags=["similarity review"],
+    )
+    def create_similarity_job(
+        request: SimilarityJobRequest, actor: Actor
+    ) -> SimilarityJobResponse:
+        _require_billing_entitlement(billing_service, actor)
+        try:
+            job = similarity_service.create(request, actor=actor)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Assignment not found") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        similarity_worker.notify()
+        return SimilarityJobResponse.from_record(job)
+
+    @application.get(
+        "/v1/similarity/jobs",
+        response_model=list[SimilarityJobResponse],
+        tags=["similarity review"],
+    )
+    def list_similarity_jobs(
+        actor: Actor,
+        assignment_id: Annotated[str | None, Query(max_length=80)] = None,
+        limit: Annotated[int, Query(ge=1, le=100)] = 50,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ) -> list[SimilarityJobResponse]:
+        del actor
+        return [
+            SimilarityJobResponse.from_record(job)
+            for job in similarity_repository.list(
+                assignment_id=assignment_id, limit=limit, offset=offset
+            )
+        ]
+
+    @application.get(
+        "/v1/similarity/jobs/{job_id}",
+        response_model=SimilarityJobResponse,
+        tags=["similarity review"],
+    )
+    def get_similarity_job(job_id: str, actor: Actor) -> SimilarityJobResponse:
+        del actor
+        job = similarity_repository.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Similarity job not found")
+        return SimilarityJobResponse.from_record(job)
+
+    @application.get(
+        "/v1/similarity/jobs/{job_id}/report",
+        response_model=SimilarityReport,
+        tags=["similarity review"],
+    )
+    def get_similarity_report(job_id: str, actor: Actor) -> SimilarityReport:
+        del actor
+        job = similarity_repository.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Similarity job not found")
+        if job.status is not SimilarityJobStatus.SUCCEEDED or job.report is None:
+            raise HTTPException(status_code=409, detail="Similarity report is not available")
+        return job.report
 
     @application.get(
         "/v1/audit-events",

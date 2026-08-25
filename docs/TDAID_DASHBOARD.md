@@ -1,4 +1,4 @@
-# TDAID Record — MVP 4 Operations Dashboard
+# TDAID Record — Operations Dashboard
 
 ## Plan
 
@@ -41,7 +41,7 @@ logic into the frontend.
 Common badges, buttons, cards, fields, dialogs, skeletons, empty states, and
 query errors were extracted into reusable components. Result calculations,
 duration formatting, and spreadsheet-safe CSV encoding moved into pure client
-utilities. `mvp4_contract.py` isolated backend normalization, pagination, and
+utilities. `dashboard_contract.py` isolated backend normalization, pagination, and
 cohort aggregation for direct mutation testing.
 
 The API client was refactored to fetch all job pages deterministically, surface
@@ -51,7 +51,7 @@ responses, redirect rejection, and an upstream timeout.
 
 ## Validate
 
-The completed MVP 4 snapshot (`7b36698`) was revalidated on 2026-08-18:
+The completed operations dashboard snapshot (`7b36698`) was revalidated on 2026-08-18:
 
 - Python regression suite: `79 passed`, including 53 unit, 11 integration, and
   4 executable API Gherkin tests.

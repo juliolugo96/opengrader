@@ -1,12 +1,12 @@
-# MVP 3 TDAID Record
+# TDAID Record — Authenticated API
 
-MVP 3 follows Plan → Red → Green → Refactor → Validate.
+The authenticated API follows Plan → Red → Green → Refactor → Validate.
 
 ## Plan
 
-- Architecture and state-machine contract: [MVP3_DESIGN.md](MVP3_DESIGN.md)
+- Architecture and state-machine contract: [API_DESIGN.md](API_DESIGN.md)
 - Business-readable acceptance contract: `tests/features/api_jobs.feature`
-- Compatibility gate: all MVP 1 and MVP 2 CLI tests remain green.
+- Compatibility gate: all initial CLI and batch grading CLI tests remain green.
 - Validation gate: unit, integration, Gherkin end-to-end, mutation, live HTTP,
   package, and dependency checks execute successfully.
 
@@ -14,8 +14,8 @@ MVP 3 follows Plan → Red → Green → Refactor → Validate.
 
 Repository, worker, API, and Gherkin tests were introduced before production
 modules. The first run stopped during collection with four expected import
-errors for `api_models`, `repository`, `worker`, and `api`; no MVP 3 production
-module existed yet.
+errors for `api_models`, `repository`, `worker`, and `api`; no production
+API module existed yet.
 
 ## Green
 
@@ -26,7 +26,7 @@ module existed yet.
   canonical persistence was corrected to exclude computed presentation fields,
   then all 14 model/repository/worker tests passed.
 - Loop 3 implemented fail-closed bearer authentication, lifespan management,
-  routes, and the executable Gherkin contract: 23 MVP 3 tests passed.
+  routes, and the executable Gherkin contract: 23 API tests passed.
 - The first complete compatibility gate passed all 60 tests that existed before
   mutation-driven hardening.
 
@@ -37,7 +37,7 @@ module existed yet.
 - Reused the CLI's configuration, discovery, selection, runner, grading, and
   report components rather than duplicating the domain pipeline.
 - Documented the supported single-process topology after reviewing restart
-  recovery semantics; distributed workers require leases rather than the MVP's
+  recovery semantics; distributed workers require leases rather than the service's
   unconditional interrupted-job recovery.
 - Added focused lifecycle and propagation tests after mutation analysis showed
   that integration tests were too coarse around the thread boundary.

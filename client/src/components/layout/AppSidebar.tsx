@@ -1,6 +1,7 @@
 "use client";
 
-import { BookOpen, ClipboardList, CreditCard, FileCheck2, History, Settings2 } from "lucide-react";
+import { BookOpen, Cable, ClipboardList, CreditCard, FileCheck2, History, Layers3, ScanSearch, Settings2 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -12,10 +13,13 @@ const navigation = [
   { href: "/assignments", key: "nav.assignments", icon: BookOpen },
   { href: "/jobs", key: "nav.jobs", icon: ClipboardList },
   { href: "/pdf", key: "nav.pdf", icon: FileCheck2 },
+  { href: "/similarity" as Route, key: "nav.similarity", icon: ScanSearch },
+  { href: "/integrations", key: "nav.integrations", icon: Cable },
   { href: "/audit", key: "nav.audit", icon: History },
   { href: "/billing", key: "nav.billing", icon: CreditCard },
+  { href: "/plans", key: "nav.plans", icon: Layers3 },
   { href: "/settings", key: "nav.settings", icon: Settings2 }
-] as const;
+] as const satisfies ReadonlyArray<{ href: Route; key: string; icon: typeof BookOpen }>;
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -67,7 +71,7 @@ export function AppSidebar() {
 
       <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-6 rounded-2xl border bg-card/95 p-1.5 shadow-panel backdrop-blur-xl md:hidden"
+        className="fixed inset-x-3 bottom-3 z-40 flex overflow-x-auto rounded-2xl border bg-card/95 p-1.5 shadow-panel backdrop-blur-xl md:hidden"
       >
         {navigation.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -76,7 +80,7 @@ export function AppSidebar() {
             <Link
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl py-2 text-[0.68rem] font-medium",
+                "flex min-w-[4.75rem] flex-1 flex-col items-center gap-1 rounded-xl py-2 text-[0.68rem] font-medium",
                 active ? "bg-primary/10 text-primary" : "text-muted-foreground"
               )}
               href={item.href}

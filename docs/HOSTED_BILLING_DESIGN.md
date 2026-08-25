@@ -1,8 +1,8 @@
-# MVP 6 Design — Hosted Billing
+# Hosted Billing Design
 
 ## Outcome
 
-MVP 6 adds optional Stripe subscriptions and durable usage metering for hosted
+Hosted billing adds optional Stripe subscriptions and durable usage metering for hosted
 deployments. Billing is disabled by default: the CLI and every local grading
 feature remain free and do not require Stripe configuration.
 
@@ -56,9 +56,8 @@ webhook route is public by necessity and requires a valid Stripe signature.
 Billing has dedicated `billing_accounts`, `billing_usage_events`, and
 `stripe_webhook_events` tables. Subscription projections retain the Stripe
 event creation timestamp to tolerate out-of-order delivery. The usage worker is
-single-process for this MVP, matching the grading worker deployment constraint.
+single-process, matching the grading worker deployment constraint.
 
 Supported lifecycle events are `checkout.session.completed` and
 `customer.subscription.created`, `.updated`, and `.deleted`. Unknown verified
 events are acknowledged and recorded so Stripe does not retry them forever.
-

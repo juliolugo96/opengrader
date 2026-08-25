@@ -1,8 +1,8 @@
-# MVP 3 API Architecture and Design
+# API Architecture and Design
 
 ## Goal
 
-MVP 3 exposes the local grading engine through an authenticated HTTP API with
+The service exposes the local grading engine through an authenticated HTTP API with
 durable jobs, result retrieval, and auditability. The API remains local-first:
 requests refer to assignment and submission paths already available to the
 server, while execution uses the existing Docker sandbox by default.
@@ -43,7 +43,7 @@ actor, signals the worker, and returns `202`. A lifespan-managed daemon worker
 claims jobs and invokes the existing discovery, selection, runner, grading, and
 report pipeline. Each job writes reports beneath `<output-root>/<job-id>/`.
 
-The MVP worker is in-process and supports one API process. Running multiple API
+The worker is in-process and supports one API process. Running multiple API
 processes against one database is not supported because startup recovery cannot
 distinguish a live worker's job from an interrupted job. Production
 orchestration, distributed queues, leases, cancellation, and retention policies
@@ -58,4 +58,4 @@ remain future work.
   job to `failed` and record a terminal audit event.
 - Result access before success returns `409`; unknown resources return `404`.
 - The API never accepts a caller-selected output directory.
-- `no_docker` is explicit and retains MVP 2's trusted-code warning in docs.
+- `no_docker` is explicit and retains batch grading's trusted-code warning in docs.

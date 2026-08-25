@@ -14,7 +14,7 @@ from opengrader.api_models import (
     JobRecord,
     JobStatus,
 )
-from opengrader.mvp4_contract import validate_job_page
+from opengrader.dashboard_contract import validate_job_page
 from opengrader.results import GradingResult
 
 

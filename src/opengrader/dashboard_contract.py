@@ -1,4 +1,4 @@
-"""Pure compatibility and aggregation rules introduced by the MVP 4 dashboard."""
+"""Pure compatibility, pagination, and dashboard aggregation rules."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from opengrader.results import GradingResult
 
 
 def normalize_job_request_payload(value: Any) -> Any:
-    """Accept the MVP 4 public field names while preserving MVP 3 storage names."""
+    """Accept public dashboard field names while preserving storage names."""
     if not isinstance(value, dict):
         return value
     normalized = dict(value)

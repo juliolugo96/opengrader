@@ -1,8 +1,8 @@
-# MVP 4 Design — Operations Dashboard
+# Operations Dashboard Design
 
 ## Outcome
 
-MVP 4 adds a responsive web console around the authenticated MVP 3 API. An
+The operations dashboard adds a responsive web console around the authenticated API. An
 instructor can connect to an OpenGrader host, create and monitor grading jobs,
 inspect cohort and student-level results, export result data, and trace the
 durable audit history. The dashboard does not execute submissions or duplicate
@@ -46,15 +46,15 @@ API contract and normalizes transport errors into user-facing messages.
 
 ## API compatibility additions
 
-MVP 4 extends the backend without changing the grading pipeline:
+The dashboard extends the backend without changing the grading pipeline:
 
 - `assignment_path` and `submission_filter` are accepted as public dashboard
-  aliases for the persisted MVP 3 job-request fields.
+  aliases for the persisted authenticated API job-request fields.
 - Job listing has bounded `limit` and non-negative `offset` pagination.
 - Completed results include stable cohort total points, maximum points, and
   student count.
 - Pure compatibility, pagination, and aggregation rules live in
-  `mvp4_contract.py` so UI-facing behavior is independently testable.
+  `dashboard_contract.py` so UI-facing behavior is independently testable.
 
 ## Proxy and credential boundary
 
@@ -68,7 +68,7 @@ permissive CORS on the Python service. The proxy:
 - disables redirects and response caching; and
 - applies a 30-second upstream timeout.
 
-The bearer key remains available to JavaScript because MVP 4 stores it in
+The bearer key remains available to JavaScript because the dashboard stores it in
 `localStorage`. The console is therefore intended for a trusted device and
 origin. It does not provide user accounts, role-based access, a separate
 student login, or protection from malicious script executing on the dashboard

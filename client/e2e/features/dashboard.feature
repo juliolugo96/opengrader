@@ -39,7 +39,26 @@ Feature: OpenGrader operations dashboard
     Then I see the finalized rubric total
     And I can download the annotated feedback PDF
 
+  Scenario: Inspect assignment-scoped similarity evidence
+    When I open similarity review for an assignment with two submissions
+    And I start the structural review
+    Then I see explainable overlap and the human-review warning
+
   Scenario: Inspect hosted subscription and meter delivery
     When I open billing and usage
     Then I see an active hosted subscription
     And I see accepted, reported, and pending usage units
+
+  Scenario: Import a Canvas assignment and preview grade synchronization
+    When I open LMS integrations
+    Then I see the configured Canvas account
+    When I import a Canvas assignment for a course section
+    Then the assignment is linked for grade synchronization
+    When I preview its grade synchronization
+    Then I see a dry-run delivery report
+
+  Scenario: Compare transparent product plans
+    When I open product plans
+    Then I see Community, Hosted, and Institution options
+    And roadmap capabilities are labeled as planned
+    And Canvas synchronization is labeled as available now

@@ -1,4 +1,4 @@
-# TDAID Record — MVP 6 Hosted Billing
+# TDAID Record — Hosted Billing
 
 ## Plan
 
@@ -50,8 +50,8 @@ and prevents duplicate Checkout for an existing subscription.
 - Production Next.js build and browser Gherkin suite: `5 passed`.
 - Browser visual verification: billing route loaded without console errors,
   runtime overlays, or horizontal overflow.
-- Python mutation suite: `232/234` killed (`99.15%`); every MVP 6 contract
-  mutant was killed. The two survivors are equivalent pre-existing MVP 4
+- Python mutation suite: `232/234` killed (`99.15%`); every hosted billing contract
+  mutant was killed. The two survivors are equivalent pre-existing operations dashboard
   floating-point rounding mutations.
 - Frontend mutation suite: `191/191` killed (`100%`).
 - Dependency checks: Python requirements are consistent and `npm audit`

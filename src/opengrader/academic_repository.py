@@ -15,7 +15,7 @@ from opengrader.academic import (
     AssignmentKind,
     AutomatedAssignmentDefinition,
 )
-from opengrader.mvp4_contract import validate_job_page
+from opengrader.dashboard_contract import validate_job_page
 
 
 class AcademicAssignmentRepository:

@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from opengrader.api_models import AuditEvent
-from opengrader.mvp4_contract import validate_job_page
+from opengrader.dashboard_contract import validate_job_page
 from opengrader.pdf_grading import (
     PdfGradeRequest,
     PdfSubmissionRecord,
