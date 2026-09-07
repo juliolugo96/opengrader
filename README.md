@@ -1,6 +1,6 @@
 # OpenGrader
 
-**OpenGrader** is an open-source, local-first autograder with CLI and authenticated
+OpenGrader is an open-source, local-first autograder with CLI and authenticated
 HTTP interfaces. It discovers one submission per folder, runs assignment tests
 in isolated Docker containers, and writes JSON, Markdown, and CSV reports. The
 authenticated service and dashboard add durable asynchronous jobs, an audit
